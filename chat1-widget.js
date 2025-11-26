@@ -12,84 +12,120 @@
     // ==== QUICK REPLY OPTIONS CONFIGURATION ====
     // Define keywords that trigger quick reply buttons and their options
     const QUICK_REPLY_TRIGGERS = {
-        // Kitchen remodeling triggers
-        'kitchen': {
-            options: ['Small (up to 150 sqft)', 'Medium (150-250 sqft)', 'Large (250+ sqft / open concept with dining or living room)', 'Custom dimensions'],
-            message: 'What size is your kitchen project?'
-        },
-        'kitchen remodel': {
-            options: ['Small (up to 150 sqft)', 'Medium (150-250 sqft)', 'Large (250+ sqft / open concept with dining or living room)', 'Custom dimensions'],
-            message: 'What size is your kitchen project?'
+        // Kitchen Size
+        'how large is your kitchen': {
+            options: ['Small (up to 150 sqft)', 'Medium (150-250 sqft)', 'Large (250+ sqft / open concept)', 'Custom dimensions'],
+            message: 'Select kitchen size'
         },
         
-        // Bathroom remodeling triggers
-        'bathroom': {
-            options: ['Small Bathroom', 'Medium Bathroom', 'Large Bathroom', 'Multiple Bathrooms'],
-            message: 'What size is your bathroom project?'
-        },
-        'bathroom remodel': {
-            options: ['Small Bathroom', 'Medium Bathroom', 'Large Bathroom', 'Multiple Bathrooms'],
-            message: 'What size is your bathroom project?'
+        // Bathroom Size
+        'what size bathroom': {
+            options: ['Small (up to 35 sqft - hall/guest bath)', 'Medium (40-50 sqft - standard full bath)', 'Large (60+ sqft - master bathroom)'],
+            message: 'Select bathroom size'
         },
         
-        // Home addition triggers
-        'addition': {
-            options: ['Single Room', 'Multiple Rooms', 'Second Story', 'Full Addition'],
-            message: 'What type of addition are you planning?'
-        },
-        'home addition': {
-            options: ['Single Room', 'Multiple Rooms', 'Second Story', 'Full Addition'],
-            message: 'What type of addition are you planning?'
+        // Basement Size
+        'how large is your basement': {
+            options: ['Small (under 600 sqft)', 'Medium (600-900 sqft)', 'Large (900+ sqft)'],
+            message: 'Select basement size'
         },
         
-        // Flooring triggers
-        'flooring': {
-            options: ['Hardwood', 'Tile', 'Carpet', 'Laminate', 'Vinyl'],
-            message: 'What type of flooring are you interested in?'
-        },
-        'floor': {
-            options: ['Hardwood', 'Tile', 'Carpet', 'Laminate', 'Vinyl'],
-            message: 'What type of flooring are you interested in?'
+        // Home Size
+        'approximate size of your home': {
+            options: ['Small (under 1,500 sqft)', 'Medium (1,500-2,500 sqft)', 'Large (2,500+ sqft)'],
+            message: 'Select home size'
         },
         
-        // Roofing triggers
-        'roof': {
-            options: ['Repair', 'Replacement', 'New Installation', 'Inspection'],
-            message: 'What roofing service do you need?'
+        // Layout Questions - Kitchen/Bathroom
+        'keeping the same layout': {
+            options: ['Keep existing layout', 'Open concept / Change layout'],
+            message: 'Select layout option'
         },
-        'roofing': {
-            options: ['Repair', 'Replacement', 'New Installation', 'Inspection'],
-            message: 'What roofing service do you need?'
+        'same layout or opening walls': {
+            options: ['Keep existing layout', 'Open concept'],
+            message: 'Select layout option'
+        },
+        'same layout or moving plumbing': {
+            options: ['Keep existing layout', 'Change layout'],
+            message: 'Select layout option'
         },
         
-        // Painting triggers
-        'paint': {
-            options: ['Interior Painting', 'Exterior Painting', 'Both Interior & Exterior', 'Commercial Painting'],
-            message: 'What type of painting service do you need?'
+        // Structural Changes - Full Home
+        'major layout changes': {
+            options: ['Keep layout', 'Open concept', 'Additions (expand square footage)'],
+            message: 'Select structural option'
         },
-        'painting': {
-            options: ['Interior Painting', 'Exterior Painting', 'Both Interior & Exterior', 'Commercial Painting'],
-            message: 'What type of painting service do you need?'
+        
+        // Finish Level Questions
+        'finish level best describes': {
+            options: ['Basic / Mid-Grade', 'Premium', 'High-End'],
+            message: 'Select finish level'
+        },
+        'what type of finishes do you prefer': {
+            options: ['Basic / Mid-Grade', 'Premium', 'High-End'],
+            message: 'Select finish level'
+        },
+        'level of finishes are you looking': {
+            options: ['Basic', 'Premium', 'High-End'],
+            message: 'Select finish level'
+        },
+        'finishes are you considering': {
+            options: ['Basic / Mid-Grade', 'Premium', 'High-End'],
+            message: 'Select finish level'
+        },
+        
+        // Basement Specific Questions
+        'condition of your current basement floor': {
+            options: ['Good shape (may only need waterproofing & flooring)', 'Cracked/uneven or missing (needs new slab)'],
+            message: 'Select floor condition'
+        },
+        'waterproof your basement': {
+            options: ['Yes (French drain + sump pump)', 'No (already in place)'],
+            message: 'Select waterproofing option'
+        },
+        'add a bathroom to your basement': {
+            options: ['Yes', 'No'],
+            message: 'Select option'
+        },
+        'frame and finish additional rooms': {
+            options: ['Yes', 'No'],
+            message: 'Select option'
+        },
+        
+        // Full Home - Scope of Work
+        'which areas are you looking to remodel': {
+            options: ['Kitchen(s)', 'Bathroom(s)', 'Basement', 'Whole home'],
+            message: 'Select areas to remodel'
+        },
+        
+        // Meeting/Booking Questions
+        'book a meeting': {
+            options: ['Yes', 'No / Not right now'],
+            message: 'Would you like to schedule?'
+        },
+        'more information about any of our other services': {
+            options: ['Kitchen Remodel', 'Bathroom Remodel', 'Basement Remodel', 'Full Home Remodel'],
+            message: 'Select a service'
         },
         
         // Timeline triggers
-        'timeline': {
+        'when would you like to start': {
             options: ['ASAP', 'Within 1 Month', '1-3 Months', '3-6 Months', 'Just Planning'],
-            message: 'When would you like to start the project?'
+            message: 'Select your timeline'
         },
-        'when': {
+        'preferred date & time': {
             options: ['ASAP', 'Within 1 Month', '1-3 Months', '3-6 Months', 'Just Planning'],
-            message: 'When would you like to start the project?'
+            message: 'Select your preferred timeline'
         },
         
         // Budget triggers
         'budget': {
             options: ['Under $10K', '$10K - $25K', '$25K - $50K', '$50K - $100K', 'Over $100K'],
-            message: 'What is your estimated budget range?'
+            message: 'Select budget range'
         },
         'cost': {
             options: ['Under $10K', '$10K - $25K', '$25K - $50K', '$50K - $100K', 'Over $100K'],
-            message: 'What is your budget range?'
+            message: 'Select budget range'
         }
     };
 
@@ -465,17 +501,9 @@
     function checkForQuickReplies(botResponseText) {
         const lowerText = botResponseText.toLowerCase();
         
-        // Special handling for size questions (more flexible matching)
-        if ((lowerText.includes('how large') || lowerText.includes('size') || lowerText.includes('dimensions')) && lowerText.includes('kitchen')) {
-            return QUICK_REPLY_TRIGGERS['kitchen'];
-        }
-        if ((lowerText.includes('how large') || lowerText.includes('size') || lowerText.includes('dimensions')) && lowerText.includes('bathroom')) {
-            return QUICK_REPLY_TRIGGERS['bathroom'];
-        }
-        
-        // Check each trigger keyword
+        // Check each trigger keyword - now looks for partial matches
         for (const [trigger, config] of Object.entries(QUICK_REPLY_TRIGGERS)) {
-            if (lowerText.includes(trigger)) {
+            if (lowerText.includes(trigger.toLowerCase())) {
                 return config;
             }
         }
