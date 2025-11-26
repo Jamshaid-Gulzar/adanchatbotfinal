@@ -14,11 +14,11 @@
     const QUICK_REPLY_TRIGGERS = {
         // Kitchen remodeling triggers
         'kitchen': {
-            options: ['Small Kitchen', 'Medium Kitchen', 'Large Kitchen', 'Custom Size'],
+            options: ['Small (up to 150 sqft)', 'Medium (150-250 sqft)', 'Large (250+ sqft / open concept with dining or living room)', 'Custom dimensions'],
             message: 'What size is your kitchen project?'
         },
         'kitchen remodel': {
-            options: ['Small Kitchen', 'Medium Kitchen', 'Large Kitchen', 'Custom Size'],
+            options: ['Small (up to 150 sqft)', 'Medium (150-250 sqft)', 'Large (250+ sqft / open concept with dining or living room)', 'Custom dimensions'],
             message: 'What size is your kitchen project?'
         },
         
@@ -207,21 +207,25 @@
             gap: 8px;
             margin-top: 8px;
             align-self: flex-start;
-            max-width: 85%;
+            width: 100%;
+            max-width: 90%;
         }
         .chat-assist-widget .quick-reply-btn {
-            padding: 10px 16px;
+            padding: 12px 16px;
             background: white;
             border: 2px solid var(--chat-color-primary);
             border-radius: var(--chat-radius-md);
             color: var(--chat-color-primary);
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             font-family: inherit;
             cursor: pointer;
             transition: var(--chat-transition);
             text-align: left;
             box-shadow: var(--chat-shadow-sm);
+            line-height: 1.4;
+            word-wrap: break-word;
+            white-space: normal;
         }
         .chat-assist-widget .quick-reply-btn:hover {
             background: var(--chat-color-primary);
@@ -460,6 +464,14 @@
     // ==== NEW: Check if message contains trigger keywords and show quick replies ====
     function checkForQuickReplies(botResponseText) {
         const lowerText = botResponseText.toLowerCase();
+        
+        // Special handling for size questions (more flexible matching)
+        if ((lowerText.includes('how large') || lowerText.includes('size') || lowerText.includes('dimensions')) && lowerText.includes('kitchen')) {
+            return QUICK_REPLY_TRIGGERS['kitchen'];
+        }
+        if ((lowerText.includes('how large') || lowerText.includes('size') || lowerText.includes('dimensions')) && lowerText.includes('bathroom')) {
+            return QUICK_REPLY_TRIGGERS['bathroom'];
+        }
         
         // Check each trigger keyword
         for (const [trigger, config] of Object.entries(QUICK_REPLY_TRIGGERS)) {
