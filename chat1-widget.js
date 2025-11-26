@@ -1,5 +1,5 @@
-// Interactive Chat Widget for n8n (DIRECT-START VERSION, PRE-CHAT BYPASSED)
-// Changes: 1) No name/email  2) Auto greeting  3) "Powered by Adan Construction"
+// Interactive Chat Widget for n8n (DIRECT-START VERSION WITH QUICK REPLY OPTIONS)
+// Features: 1) No name/email  2) Auto greeting  3) Quick reply buttons for services
 (function() {
     // Initialize widget only once
     if (window.N8nChatWidgetLoaded) return;
@@ -9,13 +9,97 @@
     const PRECHAT_ENABLED = false; // ⛔ false => name/email never asked
     const AUTO_GREETING = "Hello! Adan Construction AI Agent — how can I help you today?";
 
+    // ==== QUICK REPLY OPTIONS CONFIGURATION ====
+    // Define keywords that trigger quick reply buttons and their options
+    const QUICK_REPLY_TRIGGERS = {
+        // Kitchen remodeling triggers
+        'kitchen': {
+            options: ['Small Kitchen', 'Medium Kitchen', 'Large Kitchen', 'Custom Size'],
+            message: 'What size is your kitchen project?'
+        },
+        'kitchen remodel': {
+            options: ['Small Kitchen', 'Medium Kitchen', 'Large Kitchen', 'Custom Size'],
+            message: 'What size is your kitchen project?'
+        },
+        
+        // Bathroom remodeling triggers
+        'bathroom': {
+            options: ['Small Bathroom', 'Medium Bathroom', 'Large Bathroom', 'Multiple Bathrooms'],
+            message: 'What size is your bathroom project?'
+        },
+        'bathroom remodel': {
+            options: ['Small Bathroom', 'Medium Bathroom', 'Large Bathroom', 'Multiple Bathrooms'],
+            message: 'What size is your bathroom project?'
+        },
+        
+        // Home addition triggers
+        'addition': {
+            options: ['Single Room', 'Multiple Rooms', 'Second Story', 'Full Addition'],
+            message: 'What type of addition are you planning?'
+        },
+        'home addition': {
+            options: ['Single Room', 'Multiple Rooms', 'Second Story', 'Full Addition'],
+            message: 'What type of addition are you planning?'
+        },
+        
+        // Flooring triggers
+        'flooring': {
+            options: ['Hardwood', 'Tile', 'Carpet', 'Laminate', 'Vinyl'],
+            message: 'What type of flooring are you interested in?'
+        },
+        'floor': {
+            options: ['Hardwood', 'Tile', 'Carpet', 'Laminate', 'Vinyl'],
+            message: 'What type of flooring are you interested in?'
+        },
+        
+        // Roofing triggers
+        'roof': {
+            options: ['Repair', 'Replacement', 'New Installation', 'Inspection'],
+            message: 'What roofing service do you need?'
+        },
+        'roofing': {
+            options: ['Repair', 'Replacement', 'New Installation', 'Inspection'],
+            message: 'What roofing service do you need?'
+        },
+        
+        // Painting triggers
+        'paint': {
+            options: ['Interior Painting', 'Exterior Painting', 'Both Interior & Exterior', 'Commercial Painting'],
+            message: 'What type of painting service do you need?'
+        },
+        'painting': {
+            options: ['Interior Painting', 'Exterior Painting', 'Both Interior & Exterior', 'Commercial Painting'],
+            message: 'What type of painting service do you need?'
+        },
+        
+        // Timeline triggers
+        'timeline': {
+            options: ['ASAP', 'Within 1 Month', '1-3 Months', '3-6 Months', 'Just Planning'],
+            message: 'When would you like to start the project?'
+        },
+        'when': {
+            options: ['ASAP', 'Within 1 Month', '1-3 Months', '3-6 Months', 'Just Planning'],
+            message: 'When would you like to start the project?'
+        },
+        
+        // Budget triggers
+        'budget': {
+            options: ['Under $10K', '$10K - $25K', '$25K - $50K', '$50K - $100K', 'Over $100K'],
+            message: 'What is your estimated budget range?'
+        },
+        'cost': {
+            options: ['Under $10K', '$10K - $25K', '$25K - $50K', '$50K - $100K', 'Over $100K'],
+            message: 'What is your budget range?'
+        }
+    };
+
     // Load font resource - using Poppins for a fresh look
     const fontElement = document.createElement('link');
     fontElement.rel = 'stylesheet';
     fontElement.href = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap';
     document.head.appendChild(fontElement);
 
-    // Apply widget styles
+    // Apply widget styles (including new quick reply button styles)
     const widgetStyles = document.createElement('style');
     widgetStyles.textContent = `
         .chat-assist-widget {
@@ -116,6 +200,39 @@
             background: white; color: var(--chat-color-text); align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: var(--chat-shadow-sm); border:1px solid var(--chat-color-light);
         }
 
+        /* Quick Reply Buttons Styles */
+        .chat-assist-widget .quick-replies {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+            align-self: flex-start;
+            max-width: 85%;
+        }
+        .chat-assist-widget .quick-reply-btn {
+            padding: 10px 16px;
+            background: white;
+            border: 2px solid var(--chat-color-primary);
+            border-radius: var(--chat-radius-md);
+            color: var(--chat-color-primary);
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: var(--chat-transition);
+            text-align: left;
+            box-shadow: var(--chat-shadow-sm);
+        }
+        .chat-assist-widget .quick-reply-btn:hover {
+            background: var(--chat-color-primary);
+            color: white;
+            transform: translateX(4px);
+            box-shadow: var(--chat-shadow-md);
+        }
+        .chat-assist-widget .quick-reply-btn:active {
+            transform: translateX(4px) scale(0.98);
+        }
+
         .chat-assist-widget .typing-indicator {
             display:flex; align-items:center; gap:4px; padding:14px 18px; background:white; border-radius:var(--chat-radius-md);
             border-bottom-left-radius:4px; max-width:80px; align-self:flex-start; box-shadow:var(--chat-shadow-sm); border:1px solid var(--chat-color-light);
@@ -185,7 +302,7 @@
         branding: {
             logo: '',
             name: 'Adan Construction',
-            welcomeText: 'We’re here to help!',
+            welcomeText: 'We're here to help!',
             responseTimeText: 'Typically replies in a few minutes',
             poweredBy: {
                 text: 'Powered by Adan Construction',
@@ -202,7 +319,7 @@
         suggestedQuestions: []
     };
 
-    // Merge user settings with defaults (+ force purple -> green override if provided)
+    // Merge user settings with defaults
     const settings = window.ChatWidgetConfig ?
         {
             webhook: { ...defaultSettings.webhook, ...window.ChatWidgetConfig.webhook },
@@ -340,6 +457,47 @@
         return text.replace(urlPattern, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link">${url}</a>`);
     }
 
+    // ==== NEW: Check if message contains trigger keywords and show quick replies ====
+    function checkForQuickReplies(botResponseText) {
+        const lowerText = botResponseText.toLowerCase();
+        
+        // Check each trigger keyword
+        for (const [trigger, config] of Object.entries(QUICK_REPLY_TRIGGERS)) {
+            if (lowerText.includes(trigger)) {
+                return config;
+            }
+        }
+        return null;
+    }
+
+    // ==== NEW: Create and display quick reply buttons ====
+    function displayQuickReplies(options) {
+        // Remove any existing quick replies first
+        const existingReplies = messagesContainer.querySelector('.quick-replies');
+        if (existingReplies) {
+            existingReplies.remove();
+        }
+
+        const quickRepliesContainer = document.createElement('div');
+        quickRepliesContainer.className = 'quick-replies';
+
+        options.forEach(option => {
+            const button = document.createElement('button');
+            button.className = 'quick-reply-btn';
+            button.textContent = option;
+            button.addEventListener('click', () => {
+                // Remove quick replies after selection
+                quickRepliesContainer.remove();
+                // Send the selected option as a message
+                submitMessage(option);
+            });
+            quickRepliesContainer.appendChild(button);
+        });
+
+        messagesContainer.appendChild(quickRepliesContainer);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
     function showRegistrationForm(){
         chatWelcome.style.display = 'none';
         userRegistration.classList.add('active');
@@ -358,6 +516,13 @@
         botMessage.className = 'chat-bubble bot-bubble';
         botMessage.textContent = AUTO_GREETING;
         messagesContainer.appendChild(botMessage);
+        
+        // Check if greeting should trigger quick replies
+        const quickReplyConfig = checkForQuickReplies(AUTO_GREETING);
+        if (quickReplyConfig) {
+            displayQuickReplies(quickReplyConfig.options);
+        }
+        
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
         // Optional: load/init session on backend
@@ -437,6 +602,12 @@
             botMessage.innerHTML = linkifyText(messageText || AUTO_GREETING);
             messagesContainer.appendChild(botMessage);
 
+            // Check for quick replies in bot response
+            const quickReplyConfig = checkForQuickReplies(messageText);
+            if (quickReplyConfig) {
+                displayQuickReplies(quickReplyConfig.options);
+            }
+
             // Suggested questions (if any)
             if (Array.isArray(settings.suggestedQuestions) && settings.suggestedQuestions.length){
                 const wrap = document.createElement('div'); wrap.className='suggested-questions';
@@ -465,6 +636,12 @@
     async function submitMessage(messageText){
         if (isWaitingForResponse) return;
         isWaitingForResponse = true;
+
+        // Remove any existing quick replies when user sends a message
+        const existingReplies = messagesContainer.querySelector('.quick-replies');
+        if (existingReplies) {
+            existingReplies.remove();
+        }
 
         // Since pre-chat is bypassed, don't send PII
         const nameVal = PRECHAT_ENABLED ? (nameInput?.value.trim() || "") : "";
@@ -503,6 +680,13 @@
             const responseText = Array.isArray(data) ? (data[0]?.output || '') : (data?.output || '');
             botMessage.innerHTML = linkifyText(responseText || "...");
             messagesContainer.appendChild(botMessage);
+
+            // ==== NEW: Check if bot response should trigger quick replies ====
+            const quickReplyConfig = checkForQuickReplies(responseText);
+            if (quickReplyConfig) {
+                displayQuickReplies(quickReplyConfig.options);
+            }
+
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
         }catch(err){
