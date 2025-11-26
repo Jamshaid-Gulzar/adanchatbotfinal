@@ -267,7 +267,7 @@
 
     // Create chat panel
     const chatWindow = document.createElement('div');
-    chatWindow.className = chat-window ${settings.style.position === 'left' ? 'left-side' : 'right-side'};
+    chatWindow.className = `chat-window ${settings.style.position === 'left' ? 'left-side' : 'right-side'}`;
 
     // Welcome header + screen
     const welcomeScreenHTML = `
@@ -331,7 +331,7 @@
 
     // Toggle launcher
     const launchButton = document.createElement('button');
-    launchButton.className = chat-launcher ${settings.style.position === 'left' ? 'left-side' : 'right-side'};
+    launchButton.className = `chat-launcher ${settings.style.position === 'left' ? 'left-side' : 'right-side'}`;
     launchButton.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
              fill="none" stroke="currentColor" stroke-width="2"
@@ -366,12 +366,12 @@
     function createTypingIndicator(){
         const indicator = document.createElement('div');
         indicator.className = 'typing-indicator';
-        indicator.innerHTML = <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>;
+        indicator.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
         return indicator;
     }
     function linkifyText(text){
-        const urlPattern = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=_|!:,.;]*[-A-Z0-9+&@#\/%=_|])/gim;
-        return text.replace(urlPattern, (url) => <a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link">${url}</a>);
+        const urlPattern = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
+        return text.replace(urlPattern, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link">${url}</a>`);
     }
 
     // Parse [BUTTONS]...[/BUTTONS] format from n8n response
@@ -507,7 +507,7 @@
                 action:"sendMessage",
                 sessionId: conversationId,
                 route: settings.webhook.route,
-                chatInput: Name: ${nameVal}\nEmail: ${emailVal},
+                chatInput: `Name: ${nameVal}\nEmail: ${emailVal}`,
                 metadata: { userId: emailVal, userName: nameVal, isUserInfo: true }
             };
             const r2 = await fetch(settings.webhook.url, {
