@@ -1,5 +1,5 @@
-// Interactive Chat Widget for n8n (WITH SUGGESTED REPLIES SUPPORT - FIXED)
-// Now parses JSON responses with metadata.suggestedReplies and displays clickable buttons
+// Interactive Chat Widget for n8n (AUTO-DETECT BULLET POINTS AS BUTTONS)
+// Automatically converts bullet points in AI responses to clickable buttons
 (function() {
     // Initialize widget only once
     if (window.N8nChatWidgetLoaded) return;
@@ -177,7 +177,7 @@
         .chat-assist-widget .submit-registration:hover { transform: translateY(-2px); box-shadow: var(--chat-shadow-lg); }
         .chat-assist-widget .submit-registration:disabled { opacity:.7; cursor:not-allowed; transform:none; }
 
-        /* Suggested Reply Buttons - IMPROVED STYLES */
+        /* Suggested Reply Buttons */
         .chat-assist-widget .suggested-replies {
             display: flex;
             flex-direction: column;
@@ -377,56 +377,55 @@
         return text.replace(urlPattern, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link">${url}</a>`);
     }
 
-    // NEW: Parse JSON response and create suggested reply buttons
-    function parseResponseAndCreateButtons(responseData) {
-        let messageText = '';
-        let suggestedReplies = [];
+    // NEW: Auto-detect bullet points and extract as buttons
+    function parseBulletPointsAsButtons(responseText) {
+        if (!responseText) return { message: '', buttons: [] };
 
-        // Check if response is JSON with metadata
-        if (typeof responseData === 'object' && responseData !== null) {
-            if (responseData.output) {
-                messageText = responseData.output;
-            }
-            if (responseData.metadata && Array.isArray(responseData.metadata.suggestedReplies)) {
-                suggestedReplies = responseData.metadata.suggestedReplies;
-            }
-        } else if (typeof responseData === 'string') {
-            // Try to parse as JSON string
-            try {
-                const parsed = JSON.parse(responseData);
-                if (parsed.output) {
-                    messageText = parsed.output;
+        const lines = responseText.split('\n');
+        const messageLines = [];
+        const buttonLines = [];
+        let foundBullets = false;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            // Check if line starts with bullet (-, •, *, or numbered list)
+            if (line.match(/^[-•*]\s+/) || line.match(/^\d+[\.)]\s+/)) {
+                foundBullets = true;
+                // Extract text after bullet/number
+                const buttonText = line.replace(/^[-•*]\s+/, '').replace(/^\d+[\.)]\s+/, '').trim();
+                if (buttonText) {
+                    buttonLines.push(buttonText);
                 }
-                if (parsed.metadata && Array.isArray(parsed.metadata.suggestedReplies)) {
-                    suggestedReplies = parsed.metadata.suggestedReplies;
-                }
-            } catch {
-                // Not JSON, treat as plain text
-                messageText = responseData;
+            } else if (!foundBullets && line) {
+                // Lines before bullets are part of the message
+                messageLines.push(lines[i]); // Keep original formatting
             }
+            // Lines after bullets are ignored (they're converted to buttons)
         }
 
-        return { messageText, suggestedReplies };
+        const message = messageLines.join('\n').trim();
+        return { message, buttons: buttonLines };
     }
 
-    // NEW: Create suggested reply buttons
-    function createSuggestedReplies(replies) {
-        if (!Array.isArray(replies) || replies.length === 0) return null;
+    // Create button elements
+    function createButtonElements(buttons) {
+        if (!buttons || buttons.length === 0) return null;
 
-        // Remove any existing suggested replies first
-        const existingReplies = messagesContainer.querySelector('.suggested-replies');
-        if (existingReplies) existingReplies.remove();
+        // Remove any existing buttons first
+        const existingButtons = messagesContainer.querySelector('.suggested-replies');
+        if (existingButtons) existingButtons.remove();
 
         const container = document.createElement('div');
         container.className = 'suggested-replies';
 
-        replies.forEach(reply => {
+        buttons.forEach(buttonText => {
             const button = document.createElement('button');
             button.className = 'suggested-reply-btn';
-            button.textContent = reply;
+            button.textContent = buttonText;
             button.addEventListener('click', () => {
-                submitMessage(reply);
-                container.remove(); // Remove buttons after click
+                submitMessage(buttonText);
+                container.remove();
             });
             container.appendChild(button);
         });
@@ -496,7 +495,6 @@
         messagesContainer.appendChild(typing);
 
         try{
-            // load session
             const sessionData = [{
                 action:"loadPreviousSession",
                 sessionId:conversationId,
@@ -509,7 +507,6 @@
             });
             await r1.json().catch(()=> ({}));
 
-            // send user info as first message
             const userInfoData = {
                 action:"sendMessage",
                 sessionId: conversationId,
@@ -525,20 +522,18 @@
 
             messagesContainer.removeChild(typing);
 
-            // Parse response for suggested replies
             const responseText = Array.isArray(d2) ? d2[0]?.output || '' : d2?.output || '';
-            const { messageText, suggestedReplies } = parseResponseAndCreateButtons(responseText);
+            const { message, buttons } = parseBulletPointsAsButtons(responseText);
 
             const botMessage = document.createElement('div');
             botMessage.className = 'chat-bubble bot-bubble';
-            botMessage.innerHTML = linkifyText(messageText || AUTO_GREETING);
+            botMessage.innerHTML = linkifyText(message || AUTO_GREETING);
             messagesContainer.appendChild(botMessage);
 
-            // Add suggested reply buttons if any
-            if (suggestedReplies.length > 0) {
-                const repliesContainer = createSuggestedReplies(suggestedReplies);
-                if (repliesContainer) {
-                    messagesContainer.appendChild(repliesContainer);
+            if (buttons.length > 0) {
+                const buttonContainer = createButtonElements(buttons);
+                if (buttonContainer) {
+                    messagesContainer.appendChild(buttonContainer);
                 }
             }
 
@@ -591,7 +586,7 @@
 
             if (typing && typing.parentNode) messagesContainer.removeChild(typing);
 
-            // Parse response - handle both array and object responses
+            // Get response text
             let responseText = '';
             if (Array.isArray(data)) {
                 responseText = data[0]?.output || '';
@@ -601,19 +596,19 @@
                 responseText = String(data);
             }
 
-            // Parse for suggested replies
-            const { messageText: parsedMessage, suggestedReplies } = parseResponseAndCreateButtons(responseText);
+            // Parse bullet points as buttons
+            const { message, buttons } = parseBulletPointsAsButtons(responseText);
 
             const botMessage = document.createElement('div');
             botMessage.className = 'chat-bubble bot-bubble';
-            botMessage.innerHTML = linkifyText(parsedMessage || "...");
+            botMessage.innerHTML = linkifyText(message || "...");
             messagesContainer.appendChild(botMessage);
 
-            // Add suggested reply buttons if any
-            if (suggestedReplies.length > 0) {
-                const repliesContainer = createSuggestedReplies(suggestedReplies);
-                if (repliesContainer) {
-                    messagesContainer.appendChild(repliesContainer);
+            // Add buttons if found
+            if (buttons.length > 0) {
+                const buttonContainer = createButtonElements(buttons);
+                if (buttonContainer) {
+                    messagesContainer.appendChild(buttonContainer);
                 }
             }
 
