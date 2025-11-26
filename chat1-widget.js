@@ -1,178 +1,21 @@
-// Interactive Chat Widget for n8n - SIMPLIFIED BUTTON DETECTION
-// More flexible matching to ensure buttons always appear
+// Interactive Chat Widget for n8n (WITH SUGGESTED REPLIES SUPPORT)
+// Now parses JSON responses with metadata.suggestedReplies and displays buttons
 (function() {
+    // Initialize widget only once
     if (window.N8nChatWidgetLoaded) return;
     window.N8nChatWidgetLoaded = true;
 
-    const PRECHAT_ENABLED = false;
+    // ==== SETTINGS (toggle) ====
+    const PRECHAT_ENABLED = false; // ⛔ false => name/email never asked
     const AUTO_GREETING = "Hello! Adan Construction AI Agent — how can I help you today?";
 
-    // ==== SIMPLIFIED BUTTON DETECTION ====
-    // Check for keywords in bot response and show appropriate buttons
-    function getButtonsForResponse(text) {
-        const lowerText = text.toLowerCase();
-        
-        // Kitchen size - check for "kitchen" and ("large" OR "size")
-        if (lowerText.includes('kitchen') && (lowerText.includes('large') || lowerText.includes('size'))) {
-            return [
-                'Small (up to 150 sqft)',
-                'Medium (150-250 sqft)',
-                'Large (250+ sqft / open concept)',
-                'Custom dimensions'
-            ];
-        }
-        
-        // Kitchen layout
-        if (lowerText.includes('layout') && lowerText.includes('kitchen') || 
-            (lowerText.includes('open') && lowerText.includes('walls'))) {
-            return [
-                'Keep existing layout',
-                'Open concept (removing walls)'
-            ];
-        }
-        
-        // Kitchen finish
-        if ((lowerText.includes('finish') && lowerText.includes('vision')) ||
-            (lowerText.includes('finish level') && lowerText.includes('kitchen'))) {
-            return [
-                'Basic / Mid-Grade',
-                'Premium',
-                'High-End'
-            ];
-        }
-        
-        // Bathroom size
-        if (lowerText.includes('bathroom') && (lowerText.includes('size') || lowerText.includes('renovating'))) {
-            return [
-                'Small (up to 35 sqft - hall/guest bath)',
-                'Medium (40-50 sqft - standard full bath)',
-                'Large (60+ sqft - master bathroom)'
-            ];
-        }
-        
-        // Bathroom layout
-        if (lowerText.includes('layout') && lowerText.includes('bathroom') ||
-            lowerText.includes('plumbing fixtures')) {
-            return [
-                'Keep existing layout',
-                'Change layout (move plumbing)'
-            ];
-        }
-        
-        // Bathroom finish
-        if (lowerText.includes('finishes') && lowerText.includes('prefer') && lowerText.includes('bathroom')) {
-            return [
-                'Basic / Mid-Grade',
-                'Premium',
-                'High-End'
-            ];
-        }
-        
-        // Basement size
-        if (lowerText.includes('basement') && (lowerText.includes('large') || lowerText.includes('size'))) {
-            return [
-                'Small (under 600 sqft)',
-                'Medium (600-900 sqft)',
-                'Large (900+ sqft)'
-            ];
-        }
-        
-        // Basement floor condition
-        if (lowerText.includes('basement') && lowerText.includes('floor') && lowerText.includes('condition')) {
-            return [
-                'Good shape (may only need waterproofing)',
-                'Cracked/uneven or missing (needs new slab)'
-            ];
-        }
-        
-        // Basement waterproofing
-        if (lowerText.includes('waterproof') && lowerText.includes('basement')) {
-            return [
-                'Yes (French drain + sump pump)',
-                'No (already in place)'
-            ];
-        }
-        
-        // Add bathroom to basement
-        if (lowerText.includes('add a bathroom') && lowerText.includes('basement')) {
-            return ['Yes', 'No'];
-        }
-        
-        // Frame additional rooms
-        if (lowerText.includes('frame') && lowerText.includes('additional rooms')) {
-            return ['Yes', 'No'];
-        }
-        
-        // Basement finish
-        if (lowerText.includes('basement') && lowerText.includes('finishes') && lowerText.includes('looking')) {
-            return ['Basic', 'Premium', 'High-End'];
-        }
-        
-        // Home size
-        if (lowerText.includes('home') && lowerText.includes('size') && lowerText.includes('approximate')) {
-            return [
-                'Small (under 1,500 sqft)',
-                'Medium (1,500-2,500 sqft)',
-                'Large (2,500+ sqft)'
-            ];
-        }
-        
-        // Areas to remodel
-        if (lowerText.includes('which areas') || lowerText.includes('areas are you looking')) {
-            return ['Kitchen(s)', 'Bathroom(s)', 'Basement', 'Whole home'];
-        }
-        
-        // Major layout changes
-        if (lowerText.includes('major layout changes')) {
-            return [
-                'Keep layout',
-                'Open concept',
-                'Additions (expand square footage)'
-            ];
-        }
-        
-        // Home finish
-        if (lowerText.includes('finishes') && lowerText.includes('considering') && lowerText.includes('home')) {
-            return ['Basic / Mid-Grade', 'Premium', 'High-End'];
-        }
-        
-        // Initial service selection - look for all 4 services mentioned
-        if (lowerText.includes('kitchen remodel') && 
-            lowerText.includes('bathroom remodel') && 
-            lowerText.includes('basement remodel')) {
-            return [
-                'Kitchen Remodel',
-                'Bathroom Remodel',
-                'Basement Remodel',
-                'Full Home Remodel'
-            ];
-        }
-        
-        // Meeting booking
-        if (lowerText.includes('book a meeting') || lowerText.includes('book a consultation')) {
-            return ['Yes, book a meeting', 'No, not right now'];
-        }
-        
-        // Other services
-        if (lowerText.includes('other services')) {
-            return [
-                'Kitchen Remodel',
-                'Bathroom Remodel',
-                'Basement Remodel',
-                'Full Home Remodel'
-            ];
-        }
-        
-        return null;
-    }
-
-    // Load font
+    // Load font resource - using Poppins for a fresh look
     const fontElement = document.createElement('link');
     fontElement.rel = 'stylesheet';
     fontElement.href = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap';
     document.head.appendChild(fontElement);
 
-    // Styles
+    // Apply widget styles
     const widgetStyles = document.createElement('style');
     widgetStyles.textContent = `
         .chat-assist-widget {
@@ -238,7 +81,22 @@
         }
         .chat-assist-widget .chat-close-btn:hover { background: rgba(255,255,255,0.3); transform: translateY(-50%) scale(1.1); }
 
-        .chat-assist-widget .chat-body { display: flex; flex-direction: column; height: 100%; }
+        .chat-assist-widget .chat-welcome {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            padding: 24px; text-align: center; width: 100%; max-width: 320px;
+        }
+        .chat-assist-widget .chat-welcome-title { font-size: 22px; font-weight: 700; color: var(--chat-color-text); margin-bottom: 24px; line-height: 1.3; }
+        .chat-assist-widget .chat-start-btn {
+            display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
+            padding: 14px 20px; background: linear-gradient(135deg, var(--chat-color-primary) 0%, var(--chat-color-secondary) 100%);
+            color: white; border: none; border-radius: var(--chat-radius-md); cursor: pointer; font-size: 15px;
+            transition: var(--chat-transition); font-weight: 600; font-family: inherit; margin-bottom: 16px; box-shadow: var(--chat-shadow-md);
+        }
+        .chat-assist-widget .chat-start-btn:hover { transform: translateY(-2px); box-shadow: var(--chat-shadow-lg); }
+        .chat-assist-widget .chat-response-time { font-size: 14px; color: var(--chat-color-text-light); margin: 0; }
+
+        .chat-assist-widget .chat-body { display: none; flex-direction: column; height: 100%; }
+        .chat-assist-widget .chat-body.active { display: flex; }
         .chat-assist-widget .chat-messages {
             flex:1; overflow-y:auto; padding:20px; background:#f9fafb; display:flex; flex-direction:column; gap:12px;
         }
@@ -256,42 +114,6 @@
         }
         .chat-assist-widget .chat-bubble.bot-bubble {
             background: white; color: var(--chat-color-text); align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: var(--chat-shadow-sm); border:1px solid var(--chat-color-light);
-        }
-
-        .chat-assist-widget .option-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-top: 8px;
-            align-self: flex-start;
-            width: 100%;
-            max-width: 90%;
-        }
-        .chat-assist-widget .option-btn {
-            padding: 12px 16px;
-            background: white;
-            border: 2px solid var(--chat-color-primary);
-            border-radius: var(--chat-radius-md);
-            color: var(--chat-color-primary);
-            font-size: 13px;
-            font-weight: 500;
-            font-family: inherit;
-            cursor: pointer;
-            transition: var(--chat-transition);
-            text-align: left;
-            box-shadow: var(--chat-shadow-sm);
-            line-height: 1.4;
-            word-wrap: break-word;
-            white-space: normal;
-        }
-        .chat-assist-widget .option-btn:hover {
-            background: var(--chat-color-primary);
-            color: white;
-            transform: translateX(4px);
-            box-shadow: var(--chat-shadow-md);
-        }
-        .chat-assist-widget .option-btn:active {
-            transform: translateX(4px) scale(0.98);
         }
 
         .chat-assist-widget .typing-indicator {
@@ -333,31 +155,70 @@
         .chat-assist-widget .chat-footer-link { color: var(--chat-color-primary); text-decoration:none; font-size:12px; opacity:.85; transition: var(--chat-transition); font-family: inherit; }
         .chat-assist-widget .chat-footer-link:hover { opacity:1; text-decoration: underline; }
 
-        /* Debug indicator */
-        .chat-assist-widget .debug-info {
-            position: fixed;
-            bottom: 650px;
-            right: 20px;
-            background: #fff;
-            border: 2px solid #10b981;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 11px;
-            max-width: 300px;
-            z-index: 10001;
-            display: none;
+        /* Registration (kept for compatibility but hidden if PRECHAT_ENABLED=false) */
+        .chat-assist-widget .user-registration {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            padding: 24px; text-align: center; width: 100%; max-width: 320px; display: none;
         }
-        .chat-assist-widget .debug-info.show {
-            display: block;
+        .chat-assist-widget .user-registration.active { display: block; }
+        .chat-assist-widget .registration-title { font-size: 18px; font-weight: 600; color: var(--chat-color-text); margin-bottom: 16px; line-height: 1.3; }
+        .chat-assist-widget .registration-form { display:flex; flex-direction:column; gap:12px; margin-bottom:16px; }
+        .chat-assist-widget .form-field { display:flex; flex-direction:column; gap:4px; text-align:left; }
+        .chat-assist-widget .form-label { font-size:14px; font-weight:500; color: var(--chat-color-text); }
+        .chat-assist-widget .form-input { padding:12px 14px; border:1px solid var(--chat-color-border); border-radius: var(--chat-radius-md); font-family: inherit; font-size: 14px; transition: var(--chat-transition); }
+        .chat-assist-widget .form-input:focus { outline:none; border-color:var(--chat-color-primary); box-shadow:0 0 0 3px rgba(16,185,129,.2); }
+        .chat-assist-widget .form-input.error { border-color:#ef4444; }
+        .chat-assist-widget .error-text { font-size:12px; color:#ef4444; margin-top:2px; }
+        .chat-assist-widget .submit-registration {
+            display:flex; align-items:center; justify-content:center; width:100%; padding:14px 20px;
+            background: linear-gradient(135deg, var(--chat-color-primary) 0%, var(--chat-color-secondary) 100%);
+            color:white; border:none; border-radius: var(--chat-radius-md); cursor:pointer; font-size:15px; transition: var(--chat-transition); font-weight:600; font-family:inherit; box-shadow: var(--chat-shadow-md);
+        }
+        .chat-assist-widget .submit-registration:hover { transform: translateY(-2px); box-shadow: var(--chat-shadow-lg); }
+        .chat-assist-widget .submit-registration:disabled { opacity:.7; cursor:not-allowed; transform:none; }
+
+        /* Suggested Reply Buttons */
+        .chat-assist-widget .suggested-replies {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+            align-self: flex-start;
+            max-width: 85%;
+        }
+        .chat-assist-widget .suggested-reply-btn {
+            padding: 10px 16px;
+            background: white;
+            color: var(--chat-color-primary);
+            border: 1.5px solid var(--chat-color-primary);
+            border-radius: var(--chat-radius-md);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            transition: var(--chat-transition);
+            box-shadow: var(--chat-shadow-sm);
+        }
+        .chat-assist-widget .suggested-reply-btn:hover {
+            background: var(--chat-color-primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--chat-shadow-md);
+        }
+        .chat-assist-widget .suggested-reply-btn:active {
+            transform: translateY(0);
         }
     `;
     document.head.appendChild(widgetStyles);
 
+    // Default configuration
     const defaultSettings = {
         webhook: { url: '', route: '' },
         branding: {
             logo: '',
             name: 'Adan Construction',
+            welcomeText: 'We're here to help!',
+            responseTimeText: 'Typically replies in a few minutes',
             poweredBy: {
                 text: 'Powered by Adan Construction',
                 link: 'https://www.adanconstruction.net/'
@@ -369,9 +230,11 @@
             position: 'right',
             backgroundColor: '#ffffff',
             fontColor: '#1f2937'
-        }
+        },
+        suggestedQuestions: []
     };
 
+    // Merge user settings with defaults
     const settings = window.ChatWidgetConfig ?
         {
             webhook: { ...defaultSettings.webhook, ...window.ChatWidgetConfig.webhook },
@@ -381,29 +244,68 @@
                 ...window.ChatWidgetConfig.style,
                 primaryColor: window.ChatWidgetConfig.style?.primaryColor === '#854fff' ? '#10b981' : (window.ChatWidgetConfig.style?.primaryColor || '#10b981'),
                 secondaryColor: window.ChatWidgetConfig.style?.secondaryColor === '#6b3fd4' ? '#059669' : (window.ChatWidgetConfig.style?.secondaryColor || '#059669')
-            }
+            },
+            suggestedQuestions: window.ChatWidgetConfig.suggestedQuestions || defaultSettings.suggestedQuestions
         } : defaultSettings;
 
+    // Session tracking
     let conversationId = '';
     let isWaitingForResponse = false;
 
+    // Create widget DOM structure
     const widgetRoot = document.createElement('div');
     widgetRoot.className = 'chat-assist-widget';
+
+    // Apply custom colors
     widgetRoot.style.setProperty('--chat-widget-primary', settings.style.primaryColor);
     widgetRoot.style.setProperty('--chat-widget-secondary', settings.style.secondaryColor);
     widgetRoot.style.setProperty('--chat-widget-tertiary', settings.style.secondaryColor);
     widgetRoot.style.setProperty('--chat-widget-surface', settings.style.backgroundColor);
     widgetRoot.style.setProperty('--chat-widget-text', settings.style.fontColor);
 
+    // Create chat panel
     const chatWindow = document.createElement('div');
-    chatWindow.className = `chat-window ${settings.style.position === 'left' ? 'left-side' : 'right-side'}`;
+    chatWindow.className = chat-window ${settings.style.position === 'left' ? 'left-side' : 'right-side'};
 
-    chatWindow.innerHTML = `
+    // Welcome header + screen
+    const welcomeScreenHTML = `
         <div class="chat-header">
             <img class="chat-header-logo" src="${settings.branding.logo}" alt="${settings.branding.name}">
             <span class="chat-header-title">${settings.branding.name}</span>
             <button class="chat-close-btn" aria-label="Close chat">×</button>
         </div>
+        <div class="chat-welcome">
+            <h2 class="chat-welcome-title">${settings.branding.welcomeText}</h2>
+            <button class="chat-start-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                Start chatting
+            </button>
+            <p class="chat-response-time">${settings.branding.responseTimeText}</p>
+        </div>
+        <div class="user-registration">
+            <h2 class="registration-title">Please enter your details to start chatting</h2>
+            <form class="registration-form">
+                <div class="form-field">
+                    <label class="form-label" for="chat-user-name">Name</label>
+                    <input type="text" id="chat-user-name" class="form-input" placeholder="Your name" required>
+                    <div class="error-text" id="name-error"></div>
+                </div>
+                <div class="form-field">
+                    <label class="form-label" for="chat-user-email">Email</label>
+                    <input type="email" id="chat-user-email" class="form-input" placeholder="Your email address" required>
+                    <div class="error-text" id="email-error"></div>
+                </div>
+                <button type="submit" class="submit-registration">Continue to Chat</button>
+            </form>
+        </div>
+    `;
+
+    // Main chat interface
+    const chatInterfaceHTML = `
         <div class="chat-body">
             <div class="chat-messages"></div>
             <div class="chat-controls">
@@ -423,8 +325,11 @@
         </div>
     `;
 
+    chatWindow.innerHTML = welcomeScreenHTML + chatInterfaceHTML;
+
+    // Toggle launcher
     const launchButton = document.createElement('button');
-    launchButton.className = `chat-launcher ${settings.style.position === 'left' ? 'left-side' : 'right-side'}`;
+    launchButton.className = chat-launcher ${settings.style.position === 'left' ? 'left-side' : 'right-side'};
     launchButton.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
              fill="none" stroke="currentColor" stroke-width="2"
@@ -433,66 +338,114 @@
         </svg>
         <span class="chat-launcher-text">Need help?</span>`;
 
+    // Mount
     widgetRoot.appendChild(chatWindow);
     widgetRoot.appendChild(launchButton);
     document.body.appendChild(widgetRoot);
 
+    // DOM refs
+    const startChatButton = chatWindow.querySelector('.chat-start-btn');
+    const chatBody = chatWindow.querySelector('.chat-body');
     const messagesContainer = chatWindow.querySelector('.chat-messages');
     const messageTextarea = chatWindow.querySelector('.chat-textarea');
     const sendButton = chatWindow.querySelector('.chat-submit');
 
+    // Registration elements
+    const registrationForm = chatWindow.querySelector('.registration-form');
+    const userRegistration = chatWindow.querySelector('.user-registration');
+    const chatWelcome = chatWindow.querySelector('.chat-welcome');
+    const nameInput = chatWindow.querySelector('#chat-user-name');
+    const emailInput = chatWindow.querySelector('#chat-user-email');
+    const nameError = chatWindow.querySelector('#name-error');
+    const emailError = chatWindow.querySelector('#email-error');
+
+    // Utils
     function createSessionId(){ return (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2); }
-    
     function createTypingIndicator(){
         const indicator = document.createElement('div');
         indicator.className = 'typing-indicator';
-        indicator.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
+        indicator.innerHTML = <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>;
         return indicator;
     }
-
     function linkifyText(text){
-        const urlPattern = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
-        return text.replace(urlPattern, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link">${url}</a>`);
+        const urlPattern = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=_|!:,.;]*[-A-Z0-9+&@#\/%=_|])/gim;
+        return text.replace(urlPattern, (url) => <a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link">${url}</a>);
     }
 
-    function showButtons(options) {
-        const existingButtons = messagesContainer.querySelector('.option-buttons');
-        if (existingButtons) existingButtons.remove();
+    // NEW: Parse JSON response and create suggested reply buttons
+    function parseResponseAndCreateButtons(responseData) {
+        let messageText = '';
+        let suggestedReplies = [];
 
-        const buttonsContainer = document.createElement('div');
-        buttonsContainer.className = 'option-buttons';
+        // Check if response is JSON with metadata
+        if (typeof responseData === 'object' && responseData !== null) {
+            if (responseData.output) {
+                messageText = responseData.output;
+            }
+            if (responseData.metadata && Array.isArray(responseData.metadata.suggestedReplies)) {
+                suggestedReplies = responseData.metadata.suggestedReplies;
+            }
+        } else if (typeof responseData === 'string') {
+            // Try to parse as JSON string
+            try {
+                const parsed = JSON.parse(responseData);
+                if (parsed.output) {
+                    messageText = parsed.output;
+                }
+                if (parsed.metadata && Array.isArray(parsed.metadata.suggestedReplies)) {
+                    suggestedReplies = parsed.metadata.suggestedReplies;
+                }
+            } catch {
+                // Not JSON, treat as plain text
+                messageText = responseData;
+            }
+        }
 
-        options.forEach(option => {
+        return { messageText, suggestedReplies };
+    }
+
+    // NEW: Create suggested reply buttons
+    function createSuggestedReplies(replies) {
+        if (!Array.isArray(replies) || replies.length === 0) return null;
+
+        const container = document.createElement('div');
+        container.className = 'suggested-replies';
+
+        replies.forEach(reply => {
             const button = document.createElement('button');
-            button.className = 'option-btn';
-            button.textContent = option;
+            button.className = 'suggested-reply-btn';
+            button.textContent = reply;
             button.addEventListener('click', () => {
-                submitMessage(option);
-                buttonsContainer.remove();
+                submitMessage(reply);
+                container.remove(); // Remove buttons after click
             });
-            buttonsContainer.appendChild(button);
+            container.appendChild(button);
         });
 
-        messagesContainer.appendChild(buttonsContainer);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        return container;
     }
 
+    function showRegistrationForm(){
+        chatWelcome.style.display = 'none';
+        userRegistration.classList.add('active');
+    }
+
+    // === DIRECT START without registration ===
     function startChatWithoutRegistration(){
+        chatWelcome.style.display = 'none';
+        userRegistration.classList.remove('active');
+        chatBody.classList.add('active');
+
         if (!conversationId) conversationId = createSessionId();
 
+        // Local instant greeting
         const botMessage = document.createElement('div');
         botMessage.className = 'chat-bubble bot-bubble';
         botMessage.textContent = AUTO_GREETING;
         messagesContainer.appendChild(botMessage);
-
-        const buttons = getButtonsForResponse(AUTO_GREETING);
-        if (buttons) {
-            console.log('Buttons detected for greeting:', buttons);
-            showButtons(buttons);
-        }
-
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
+        // Optional: load/init session on backend
         if (settings.webhook?.url) {
             const initData = [{
                 action: "loadPreviousSession",
@@ -508,54 +461,151 @@
         }
     }
 
+    // Registration submit
+    async function handleRegistration(e){
+        e.preventDefault();
+        nameError.textContent=''; emailError.textContent='';
+        nameInput.classList.remove('error'); emailInput.classList.remove('error');
+
+        const nameVal = nameInput.value.trim();
+        const emailVal = emailInput.value.trim();
+        let ok = true;
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!nameVal){ nameError.textContent='Please enter your name'; nameInput.classList.add('error'); ok=false; }
+        if (!emailVal){ emailError.textContent='Please enter your email'; emailInput.classList.add('error'); ok=false; }
+        else if (!emailRegex.test(emailVal)){ emailError.textContent='Please enter a valid email address'; emailInput.classList.add('error'); ok=false; }
+        if (!ok) return;
+
+        conversationId = createSessionId();
+
+        // UI
+        userRegistration.classList.remove('active');
+        chatBody.classList.add('active');
+
+        const typing = createTypingIndicator();
+        messagesContainer.appendChild(typing);
+
+        try{
+            // load session
+            const sessionData = [{
+                action:"loadPreviousSession",
+                sessionId:conversationId,
+                route: settings.webhook.route,
+                metadata: { userId: emailVal, userName: nameVal }
+            }];
+            const r1 = await fetch(settings.webhook.url, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify(sessionData)
+            });
+            await r1.json().catch(()=> ({}));
+
+            // send user info as first message
+            const userInfoData = {
+                action:"sendMessage",
+                sessionId: conversationId,
+                route: settings.webhook.route,
+                chatInput: Name: ${nameVal}\nEmail: ${emailVal},
+                metadata: { userId: emailVal, userName: nameVal, isUserInfo: true }
+            };
+            const r2 = await fetch(settings.webhook.url, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify(userInfoData)
+            });
+            const d2 = await r2.json().catch(()=> ({}));
+
+            messagesContainer.removeChild(typing);
+
+            // Parse response for suggested replies
+            const responseText = Array.isArray(d2) ? d2[0]?.output || '' : d2?.output || '';
+            const { messageText, suggestedReplies } = parseResponseAndCreateButtons(responseText);
+
+            const botMessage = document.createElement('div');
+            botMessage.className = 'chat-bubble bot-bubble';
+            botMessage.innerHTML = linkifyText(messageText || AUTO_GREETING);
+            messagesContainer.appendChild(botMessage);
+
+            // Add suggested reply buttons if any
+            if (suggestedReplies.length > 0) {
+                const repliesContainer = createSuggestedReplies(suggestedReplies);
+                if (repliesContainer) {
+                    messagesContainer.appendChild(repliesContainer);
+                }
+            }
+
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        }catch(err){
+            console.error('Registration error:', err);
+            if (typing && typing.parentNode) messagesContainer.removeChild(typing);
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'chat-bubble bot-bubble';
+            errorMessage.textContent = "Sorry, I couldn't connect to the server. Please try again later.";
+            messagesContainer.appendChild(errorMessage);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    }
+
+    // Send a message to webhook
     async function submitMessage(messageText){
         if (isWaitingForResponse) return;
         isWaitingForResponse = true;
 
-        const existingButtons = messagesContainer.querySelector('.option-buttons');
-        if (existingButtons) existingButtons.remove();
+        const nameVal = PRECHAT_ENABLED ? (nameInput?.value.trim() || "") : "";
+        const emailVal = PRECHAT_ENABLED ? (emailInput?.value.trim() || "") : "";
 
         const requestData = {
             action: "sendMessage",
             sessionId: conversationId || (conversationId = createSessionId()),
             route: settings.webhook.route,
             chatInput: messageText,
-            metadata: {}
+            metadata: { userId: emailVal, userName: nameVal }
         };
 
+        // UI: echo user message
         const userMessage = document.createElement('div');
         userMessage.className = 'chat-bubble user-bubble';
         userMessage.textContent = messageText;
         messagesContainer.appendChild(userMessage);
 
+        // typing
         const typing = createTypingIndicator();
         messagesContainer.appendChild(typing);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
         try{
             const resp = await fetch(settings.webhook.url, {
-                method: 'POST', 
-                headers: {'Content-Type':'application/json'},
+                method: 'POST', headers: {'Content-Type':'application/json'},
                 body: JSON.stringify(requestData)
             });
             const data = await resp.json().catch(()=> ({}));
 
             if (typing && typing.parentNode) messagesContainer.removeChild(typing);
 
+            // Parse response - handle both array and object responses
+            let responseText = '';
+            if (Array.isArray(data)) {
+                responseText = data[0]?.output || '';
+            } else if (typeof data === 'object' && data !== null) {
+                responseText = data.output || '';
+            } else {
+                responseText = String(data);
+            }
+
+            // Parse for suggested replies
+            const { messageText: parsedMessage, suggestedReplies } = parseResponseAndCreateButtons(responseText);
+
             const botMessage = document.createElement('div');
             botMessage.className = 'chat-bubble bot-bubble';
-            const responseText = Array.isArray(data) ? (data[0]?.output || '') : (data?.output || '');
-            botMessage.innerHTML = linkifyText(responseText || "...");
+            botMessage.innerHTML = linkifyText(parsedMessage || "...");
             messagesContainer.appendChild(botMessage);
 
-            // Check for buttons
-            console.log('Checking response for buttons:', responseText);
-            const buttons = getButtonsForResponse(responseText);
-            if (buttons) {
-                console.log('Buttons found:', buttons);
-                showButtons(buttons);
-            } else {
-                console.log('No buttons matched for this response');
+            // Add suggested reply buttons if any
+            if (suggestedReplies.length > 0) {
+                const repliesContainer = createSuggestedReplies(suggestedReplies);
+                if (repliesContainer) {
+                    messagesContainer.appendChild(repliesContainer);
+                }
             }
 
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -573,11 +623,20 @@
         }
     }
 
+    // Auto-resize textarea
     function autoResizeTextarea(){
         messageTextarea.style.height = 'auto';
         const h = Math.min(messageTextarea.scrollHeight, 120);
         messageTextarea.style.height = h + 'px';
     }
+
+    // ===== Event listeners =====
+    startChatButton.addEventListener('click', () => {
+        if (PRECHAT_ENABLED) { showRegistrationForm(); }
+        else { startChatWithoutRegistration(); }
+    });
+
+    registrationForm.addEventListener('submit', handleRegistration);
 
     sendButton.addEventListener('click', () => {
         const messageText = messageTextarea.value.trim();
@@ -601,18 +660,19 @@
         }
     });
 
+    // First open → show chat + auto greeting
     let firstOpen = true;
     launchButton.addEventListener('click', () => {
         chatWindow.classList.toggle('visible');
         if (chatWindow.classList.contains('visible')) {
-            if (firstOpen) {
+            if (!PRECHAT_ENABLED && firstOpen) {
                 startChatWithoutRegistration();
                 firstOpen = false;
             }
         }
     });
 
-    chatWindow.querySelector('.chat-close-btn').addEventListener('click', () => {
-        chatWindow.classList.remove('visible');
-    });
+    // Close button
+    const closeButtons = chatWindow.querySelectorAll('.chat-close-btn');
+    closeButtons.forEach(btn => btn.addEventListener('click', () => chatWindow.classList.remove('visible')));
 })();
