@@ -1,5 +1,5 @@
-// Interactive Chat Widget for n8n (AUTO-DETECT BULLET POINTS AS BUTTONS)
-// Automatically converts bullet points in AI responses to clickable buttons
+// Interactive Chat Widget for n8n (DIRECT-START VERSION, PRE-CHAT BYPASSED)
+// Changes: 1) No name/email  2) Auto greeting  3) "Powered by Adan Construction"
 (function() {
     // Initialize widget only once
     if (window.N8nChatWidgetLoaded) return;
@@ -180,18 +180,17 @@
         /* Suggested Reply Buttons */
         .chat-assist-widget .suggested-replies {
             display: flex;
-            flex-direction: column;
+            flex-wrap: wrap;
             gap: 8px;
             margin-top: 8px;
             align-self: flex-start;
-            width: 100%;
             max-width: 90%;
         }
         .chat-assist-widget .suggested-reply-btn {
-            padding: 12px 16px;
+            padding: 10px 16px;
             background: white;
             color: var(--chat-color-primary);
-            border: 2px solid var(--chat-color-primary);
+            border: 1.5px solid var(--chat-color-primary);
             border-radius: var(--chat-radius-md);
             cursor: pointer;
             font-size: 13px;
@@ -201,17 +200,15 @@
             box-shadow: var(--chat-shadow-sm);
             text-align: left;
             line-height: 1.4;
-            word-wrap: break-word;
-            white-space: normal;
         }
         .chat-assist-widget .suggested-reply-btn:hover {
             background: var(--chat-color-primary);
             color: white;
-            transform: translateX(4px);
+            transform: translateY(-2px);
             box-shadow: var(--chat-shadow-md);
         }
         .chat-assist-widget .suggested-reply-btn:active {
-            transform: translateX(4px) scale(0.98);
+            transform: translateY(0);
         }
     `;
     document.head.appendChild(widgetStyles);
@@ -222,7 +219,7 @@
         branding: {
             logo: '',
             name: 'Adan Construction',
-            welcomeText: 'We're here to help!',
+            welcomeText: 'We’re here to help!',
             responseTimeText: 'Typically replies in a few minutes',
             poweredBy: {
                 text: 'Powered by Adan Construction',
@@ -239,7 +236,7 @@
         suggestedQuestions: []
     };
 
-    // Merge user settings with defaults
+    // Merge user settings with defaults (+ force purple -> green override if provided)
     const settings = window.ChatWidgetConfig ?
         {
             webhook: { ...defaultSettings.webhook, ...window.ChatWidgetConfig.webhook },
@@ -270,7 +267,7 @@
 
     // Create chat panel
     const chatWindow = document.createElement('div');
-    chatWindow.className = `chat-window ${settings.style.position === 'left' ? 'left-side' : 'right-side'}`;
+    chatWindow.className = chat-window ${settings.style.position === 'left' ? 'left-side' : 'right-side'};
 
     // Welcome header + screen
     const welcomeScreenHTML = `
@@ -334,7 +331,7 @@
 
     // Toggle launcher
     const launchButton = document.createElement('button');
-    launchButton.className = `chat-launcher ${settings.style.position === 'left' ? 'left-side' : 'right-side'}`;
+    launchButton.className = chat-launcher ${settings.style.position === 'left' ? 'left-side' : 'right-side'};
     launchButton.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
              fill="none" stroke="currentColor" stroke-width="2"
@@ -355,7 +352,7 @@
     const messageTextarea = chatWindow.querySelector('.chat-textarea');
     const sendButton = chatWindow.querySelector('.chat-submit');
 
-    // Registration elements
+    // Registration elements (kept for compatibility)
     const registrationForm = chatWindow.querySelector('.registration-form');
     const userRegistration = chatWindow.querySelector('.user-registration');
     const chatWelcome = chatWindow.querySelector('.chat-welcome');
@@ -369,52 +366,49 @@
     function createTypingIndicator(){
         const indicator = document.createElement('div');
         indicator.className = 'typing-indicator';
-        indicator.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
+        indicator.innerHTML = <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>;
         return indicator;
     }
     function linkifyText(text){
-        const urlPattern = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
-        return text.replace(urlPattern, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link">${url}</a>`);
+        const urlPattern = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=_|!:,.;]*[-A-Z0-9+&@#\/%=_|])/gim;
+        return text.replace(urlPattern, (url) => <a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link">${url}</a>);
     }
 
-    // NEW: Auto-detect bullet points and extract as buttons
-    function parseBulletPointsAsButtons(responseText) {
-        if (!responseText) return { message: '', buttons: [] };
+    // Parse [BUTTONS]...[/BUTTONS] format from n8n response
+    function parseButtonsFromText(text) {
+        const buttonRegex = /\[BUTTONS\]([\s\S]*?)\[\/BUTTONS\]/gi;
+        const matches = [];
+        let cleanText = text;
+        let match;
 
-        const lines = responseText.split('\n');
-        const messageLines = [];
-        const buttonLines = [];
-        let foundBullets = false;
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
+        while ((match = buttonRegex.exec(text)) !== null) {
+            const buttonContent = match[1].trim();
+            // Split by newlines and filter out empty lines
+            const buttons = buttonContent
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .map(line => {
+                    // Remove bullet points (•, -, *, etc.) and leading/trailing whitespace
+                    return line.replace(/^[•\-\*⁠\s]+/, '').trim();
+                })
+                .filter(line => line.length > 0);
             
-            // Check if line starts with bullet (-, •, *, or numbered list)
-            if (line.match(/^[-•*]\s+/) || line.match(/^\d+[\.)]\s+/)) {
-                foundBullets = true;
-                // Extract text after bullet/number
-                const buttonText = line.replace(/^[-•*]\s+/, '').replace(/^\d+[\.)]\s+/, '').trim();
-                if (buttonText) {
-                    buttonLines.push(buttonText);
-                }
-            } else if (!foundBullets && line) {
-                // Lines before bullets are part of the message
-                messageLines.push(lines[i]); // Keep original formatting
-            }
-            // Lines after bullets are ignored (they're converted to buttons)
+            matches.push(buttons);
         }
 
-        const message = messageLines.join('\n').trim();
-        return { message, buttons: buttonLines };
+        // Remove [BUTTONS]...[/BUTTONS] blocks from text
+        cleanText = cleanText.replace(buttonRegex, '').trim();
+
+        return {
+            cleanText,
+            buttonGroups: matches
+        };
     }
 
-    // Create button elements
-    function createButtonElements(buttons) {
-        if (!buttons || buttons.length === 0) return null;
-
-        // Remove any existing buttons first
-        const existingButtons = messagesContainer.querySelector('.suggested-replies');
-        if (existingButtons) existingButtons.remove();
+    // Create suggested reply buttons
+    function createSuggestedReplies(buttons) {
+        if (!Array.isArray(buttons) || buttons.length === 0) return null;
 
         const container = document.createElement('div');
         container.className = 'suggested-replies';
@@ -425,7 +419,7 @@
             button.textContent = buttonText;
             button.addEventListener('click', () => {
                 submitMessage(buttonText);
-                container.remove();
+                container.remove(); // Remove buttons after click
             });
             container.appendChild(button);
         });
@@ -469,7 +463,7 @@
         }
     }
 
-    // Registration submit
+    // Registration submit (kept if someone enables PRECHAT)
     async function handleRegistration(e){
         e.preventDefault();
         nameError.textContent=''; emailError.textContent='';
@@ -495,6 +489,7 @@
         messagesContainer.appendChild(typing);
 
         try{
+            // load session
             const sessionData = [{
                 action:"loadPreviousSession",
                 sessionId:conversationId,
@@ -507,11 +502,12 @@
             });
             await r1.json().catch(()=> ({}));
 
+            // send user info as first message
             const userInfoData = {
                 action:"sendMessage",
                 sessionId: conversationId,
                 route: settings.webhook.route,
-                chatInput: `Name: ${nameVal}\nEmail: ${emailVal}`,
+                chatInput: Name: ${nameVal}\nEmail: ${emailVal},
                 metadata: { userId: emailVal, userName: nameVal, isUserInfo: true }
             };
             const r2 = await fetch(settings.webhook.url, {
@@ -522,21 +518,36 @@
 
             messagesContainer.removeChild(typing);
 
-            const responseText = Array.isArray(d2) ? d2[0]?.output || '' : d2?.output || '';
-            const { message, buttons } = parseBulletPointsAsButtons(responseText);
+            // Parse response for buttons
+            const messageText = Array.isArray(d2) ? d2[0]?.output || '' : d2?.output || '';
+            const { cleanText, buttonGroups } = parseButtonsFromText(messageText);
 
             const botMessage = document.createElement('div');
             botMessage.className = 'chat-bubble bot-bubble';
-            botMessage.innerHTML = linkifyText(message || AUTO_GREETING);
+            botMessage.innerHTML = linkifyText(cleanText || AUTO_GREETING);
             messagesContainer.appendChild(botMessage);
 
-            if (buttons.length > 0) {
-                const buttonContainer = createButtonElements(buttons);
-                if (buttonContainer) {
-                    messagesContainer.appendChild(buttonContainer);
-                }
+            // Add buttons if found
+            if (buttonGroups.length > 0) {
+                buttonGroups.forEach(buttons => {
+                    const repliesContainer = createSuggestedReplies(buttons);
+                    if (repliesContainer) {
+                        messagesContainer.appendChild(repliesContainer);
+                    }
+                });
             }
 
+            // Suggested questions (if any)
+            if (Array.isArray(settings.suggestedQuestions) && settings.suggestedQuestions.length){
+                const wrap = document.createElement('div'); wrap.className='suggested-questions';
+                settings.suggestedQuestions.forEach(q=>{
+                    const b = document.createElement('button');
+                    b.className='suggested-question-btn'; b.textContent=q;
+                    b.addEventListener('click', ()=>{ submitMessage(q); wrap.remove(); });
+                    wrap.appendChild(b);
+                });
+                messagesContainer.appendChild(wrap);
+            }
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
         }catch(err){
@@ -555,6 +566,7 @@
         if (isWaitingForResponse) return;
         isWaitingForResponse = true;
 
+        // Since pre-chat is bypassed, don't send PII
         const nameVal = PRECHAT_ENABLED ? (nameInput?.value.trim() || "") : "";
         const emailVal = PRECHAT_ENABLED ? (emailInput?.value.trim() || "") : "";
 
@@ -586,30 +598,23 @@
 
             if (typing && typing.parentNode) messagesContainer.removeChild(typing);
 
-            // Get response text
-            let responseText = '';
-            if (Array.isArray(data)) {
-                responseText = data[0]?.output || '';
-            } else if (typeof data === 'object' && data !== null) {
-                responseText = data.output || '';
-            } else {
-                responseText = String(data);
-            }
-
-            // Parse bullet points as buttons
-            const { message, buttons } = parseBulletPointsAsButtons(responseText);
+            // Parse response for buttons
+            const responseText = Array.isArray(data) ? (data[0]?.output || '') : (data?.output || '');
+            const { cleanText, buttonGroups } = parseButtonsFromText(responseText);
 
             const botMessage = document.createElement('div');
             botMessage.className = 'chat-bubble bot-bubble';
-            botMessage.innerHTML = linkifyText(message || "...");
+            botMessage.innerHTML = linkifyText(cleanText || "...");
             messagesContainer.appendChild(botMessage);
 
             // Add buttons if found
-            if (buttons.length > 0) {
-                const buttonContainer = createButtonElements(buttons);
-                if (buttonContainer) {
-                    messagesContainer.appendChild(buttonContainer);
-                }
+            if (buttonGroups.length > 0) {
+                buttonGroups.forEach(buttons => {
+                    const repliesContainer = createSuggestedReplies(buttons);
+                    if (repliesContainer) {
+                        messagesContainer.appendChild(repliesContainer);
+                    }
+                });
             }
 
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -635,11 +640,13 @@
     }
 
     // ===== Event listeners =====
+    // Start button: either show reg form or direct start
     startChatButton.addEventListener('click', () => {
         if (PRECHAT_ENABLED) { showRegistrationForm(); }
         else { startChatWithoutRegistration(); }
     });
 
+    // Registration form (only meaningful if pre-chat enabled)
     registrationForm.addEventListener('submit', handleRegistration);
 
     sendButton.addEventListener('click', () => {
@@ -664,7 +671,7 @@
         }
     });
 
-    // First open → show chat + auto greeting
+    // First open → show chat + auto greeting (if prechat disabled)
     let firstOpen = true;
     launchButton.addEventListener('click', () => {
         chatWindow.classList.toggle('visible');
