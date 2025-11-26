@@ -1,5 +1,5 @@
-// Interactive Chat Widget for n8n (WITH SUGGESTED REPLIES SUPPORT)
-// Now parses JSON responses with metadata.suggestedReplies and displays buttons
+// Interactive Chat Widget for n8n (WITH [BUTTONS] MARKER SUPPORT)
+// Parses [BUTTONS]...[/BUTTONS] format and displays clickable buttons
 (function() {
     // Initialize widget only once
     if (window.N8nChatWidgetLoaded) return;
@@ -184,7 +184,7 @@
             gap: 8px;
             margin-top: 8px;
             align-self: flex-start;
-            max-width: 85%;
+            max-width: 90%;
         }
         .chat-assist-widget .suggested-reply-btn {
             padding: 10px 16px;
@@ -193,11 +193,13 @@
             border: 1.5px solid var(--chat-color-primary);
             border-radius: var(--chat-radius-md);
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             font-family: inherit;
             transition: var(--chat-transition);
             box-shadow: var(--chat-shadow-sm);
+            text-align: left;
+            line-height: 1.4;
         }
         .chat-assist-widget .suggested-reply-btn:hover {
             background: var(--chat-color-primary);
@@ -372,51 +374,55 @@
         return text.replace(urlPattern, (url) => <a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link">${url}</a>);
     }
 
-    // NEW: Parse JSON response and create suggested reply buttons
-    function parseResponseAndCreateButtons(responseData) {
-        let messageText = '';
-        let suggestedReplies = [];
+    // NEW: Parse [BUTTONS]...[/BUTTONS] format
+    function parseButtonsFromText(text) {
+        const buttonRegex = /\[BUTTONS\]([\s\S]*?)\[\/BUTTONS\]/gi;
+        const matches = [];
+        let cleanText = text;
+        let match;
 
-        // Check if response is JSON with metadata
-        if (typeof responseData === 'object' && responseData !== null) {
-            if (responseData.output) {
-                messageText = responseData.output;
-            }
-            if (responseData.metadata && Array.isArray(responseData.metadata.suggestedReplies)) {
-                suggestedReplies = responseData.metadata.suggestedReplies;
-            }
-        } else if (typeof responseData === 'string') {
-            // Try to parse as JSON string
-            try {
-                const parsed = JSON.parse(responseData);
-                if (parsed.output) {
-                    messageText = parsed.output;
-                }
-                if (parsed.metadata && Array.isArray(parsed.metadata.suggestedReplies)) {
-                    suggestedReplies = parsed.metadata.suggestedReplies;
-                }
-            } catch {
-                // Not JSON, treat as plain text
-                messageText = responseData;
-            }
+        while ((match = buttonRegex.exec(text)) !== null) {
+            const buttonContent = match[1].trim();
+            // Split by newlines and filter out empty lines and bullet points
+            const buttons = buttonContent
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .map(line => {
+                    // Remove bullet points (•, -, *, etc.) and leading/trailing whitespace
+                    return line.replace(/^[•\-\*⁠\s]+/, '').trim();
+                })
+                .filter(line => line.length > 0);
+            
+            matches.push(buttons);
         }
 
-        return { messageText, suggestedReplies };
+        // Remove [BUTTONS]...[/BUTTONS] blocks from text
+        cleanText = cleanText.replace(buttonRegex, '').trim();
+        
+        // Also remove "Suggested Replies:" text and bullet points
+        cleanText = cleanText.replace(/\?Suggested Replies:?\?/gi, '').trim();
+        cleanText = cleanText.replace(/^[•\-\*⁠\s]+/gm, '').trim();
+
+        return {
+            cleanText,
+            buttonGroups: matches
+        };
     }
 
     // NEW: Create suggested reply buttons
-    function createSuggestedReplies(replies) {
-        if (!Array.isArray(replies) || replies.length === 0) return null;
+    function createSuggestedReplies(buttons) {
+        if (!Array.isArray(buttons) || buttons.length === 0) return null;
 
         const container = document.createElement('div');
         container.className = 'suggested-replies';
 
-        replies.forEach(reply => {
+        buttons.forEach(buttonText => {
             const button = document.createElement('button');
             button.className = 'suggested-reply-btn';
-            button.textContent = reply;
+            button.textContent = buttonText;
             button.addEventListener('click', () => {
-                submitMessage(reply);
+                submitMessage(buttonText);
                 container.remove(); // Remove buttons after click
             });
             container.appendChild(button);
@@ -516,21 +522,23 @@
 
             messagesContainer.removeChild(typing);
 
-            // Parse response for suggested replies
+            // Parse response for buttons
             const responseText = Array.isArray(d2) ? d2[0]?.output || '' : d2?.output || '';
-            const { messageText, suggestedReplies } = parseResponseAndCreateButtons(responseText);
+            const { cleanText, buttonGroups } = parseButtonsFromText(responseText);
 
             const botMessage = document.createElement('div');
             botMessage.className = 'chat-bubble bot-bubble';
-            botMessage.innerHTML = linkifyText(messageText || AUTO_GREETING);
+            botMessage.innerHTML = linkifyText(cleanText || AUTO_GREETING);
             messagesContainer.appendChild(botMessage);
 
-            // Add suggested reply buttons if any
-            if (suggestedReplies.length > 0) {
-                const repliesContainer = createSuggestedReplies(suggestedReplies);
-                if (repliesContainer) {
-                    messagesContainer.appendChild(repliesContainer);
-                }
+            // Add buttons if found
+            if (buttonGroups.length > 0) {
+                buttonGroups.forEach(buttons => {
+                    const repliesContainer = createSuggestedReplies(buttons);
+                    if (repliesContainer) {
+                        messagesContainer.appendChild(repliesContainer);
+                    }
+                });
             }
 
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -592,20 +600,22 @@
                 responseText = String(data);
             }
 
-            // Parse for suggested replies
-            const { messageText: parsedMessage, suggestedReplies } = parseResponseAndCreateButtons(responseText);
+            // Parse for buttons
+            const { cleanText, buttonGroups } = parseButtonsFromText(responseText);
 
             const botMessage = document.createElement('div');
             botMessage.className = 'chat-bubble bot-bubble';
-            botMessage.innerHTML = linkifyText(parsedMessage || "...");
+            botMessage.innerHTML = linkifyText(cleanText || "...");
             messagesContainer.appendChild(botMessage);
 
-            // Add suggested reply buttons if any
-            if (suggestedReplies.length > 0) {
-                const repliesContainer = createSuggestedReplies(suggestedReplies);
-                if (repliesContainer) {
-                    messagesContainer.appendChild(repliesContainer);
-                }
+            // Add buttons if found
+            if (buttonGroups.length > 0) {
+                buttonGroups.forEach(buttons => {
+                    const repliesContainer = createSuggestedReplies(buttons);
+                    if (repliesContainer) {
+                        messagesContainer.appendChild(repliesContainer);
+                    }
+                });
             }
 
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
