@@ -1,185 +1,164 @@
-// Interactive Chat Widget for n8n - WITH PROACTIVE OPTION BUTTONS
-// Users click predefined options instead of typing
+// Interactive Chat Widget for n8n - HYBRID WITH SMART BUTTON DETECTION
+// Shows predefined option buttons when AI asks specific questions
 (function() {
-    // Initialize widget only once
     if (window.N8nChatWidgetLoaded) return;
     window.N8nChatWidgetLoaded = true;
 
-    // ==== SETTINGS ====
     const PRECHAT_ENABLED = false;
     const AUTO_GREETING = "Hello! Adan Construction AI Agent — how can I help you today?";
 
-    // ==== CONVERSATION FLOW WITH PREDEFINED OPTIONS ====
-    const CONVERSATION_FLOW = {
-        // Initial service selection
-        'initial': {
-            message: AUTO_GREETING,
+    // ==== SMART BUTTON DETECTION RULES ====
+    // Map AI questions to button options
+    const BUTTON_TRIGGERS = [
+        {
+            // Kitchen size question
+            detect: (text) => text.toLowerCase().includes('how large is your kitchen'),
             options: [
-                { text: 'Kitchen Remodel', next: 'kitchen_size' },
-                { text: 'Bathroom Remodel', next: 'bathroom_size' },
-                { text: 'Basement Remodel', next: 'basement_size' },
-                { text: 'Full Home Remodel', next: 'home_size' }
+                'Small (up to 150 sqft)',
+                'Medium (150-250 sqft)',
+                'Large (250+ sqft / open concept)',
+                'Custom dimensions'
             ]
         },
-        
-        // KITCHEN FLOW
-        'kitchen_size': {
-            message: 'How large is your kitchen?',
+        {
+            // Kitchen layout question
+            detect: (text) => text.toLowerCase().includes('keeping the same layout') && text.toLowerCase().includes('kitchen'),
             options: [
-                { text: 'Small (up to 150 sqft)', next: 'kitchen_layout' },
-                { text: 'Medium (150-250 sqft)', next: 'kitchen_layout' },
-                { text: 'Large (250+ sqft / open concept)', next: 'kitchen_layout' },
-                { text: 'Custom dimensions', next: 'kitchen_custom' }
+                'Keep existing layout',
+                'Open concept (removing walls)'
             ]
         },
-        'kitchen_custom': {
-            message: 'Please provide the length × width of your kitchen.',
-            options: null, // User types here
-            next: 'kitchen_layout'
-        },
-        'kitchen_layout': {
-            message: 'Are you keeping the same layout or opening walls for an open concept?',
+        {
+            // Kitchen finish question
+            detect: (text) => text.toLowerCase().includes('finish level') && text.toLowerCase().includes('vision'),
             options: [
-                { text: 'Keep existing layout', next: 'kitchen_finish' },
-                { text: 'Open concept (removing walls)', next: 'kitchen_finish' }
+                'Basic / Mid-Grade',
+                'Premium',
+                'High-End'
             ]
         },
-        'kitchen_finish': {
-            message: 'What finish level best describes your vision?',
+        {
+            // Bathroom size question
+            detect: (text) => text.toLowerCase().includes('what size bathroom'),
             options: [
-                { text: 'Basic / Mid-Grade', next: 'kitchen_estimate' },
-                { text: 'Premium', next: 'kitchen_estimate' },
-                { text: 'High-End', next: 'kitchen_estimate' }
+                'Small (up to 35 sqft - hall/guest bath)',
+                'Medium (40-50 sqft - standard full bath)',
+                'Large (60+ sqft - master bathroom)'
             ]
         },
-        'kitchen_estimate': {
-            message: 'send_to_webhook', // Special flag to send collected data
-            options: null
-        },
-        
-        // BATHROOM FLOW
-        'bathroom_size': {
-            message: 'What size bathroom are you renovating?',
+        {
+            // Bathroom layout question
+            detect: (text) => text.toLowerCase().includes('keeping the same layout') && text.toLowerCase().includes('plumbing'),
             options: [
-                { text: 'Small (up to 35 sqft - hall/guest bath)', next: 'bathroom_layout' },
-                { text: 'Medium (40-50 sqft - standard full bath)', next: 'bathroom_layout' },
-                { text: 'Large (60+ sqft - master bathroom)', next: 'bathroom_layout' }
+                'Keep existing layout',
+                'Change layout (move plumbing)'
             ]
         },
-        'bathroom_layout': {
-            message: 'Are you keeping the same layout or moving plumbing fixtures?',
+        {
+            // Bathroom finish question
+            detect: (text) => text.toLowerCase().includes('type of finishes') && text.toLowerCase().includes('prefer'),
             options: [
-                { text: 'Keep existing layout', next: 'bathroom_finish' },
-                { text: 'Change layout (move plumbing)', next: 'bathroom_finish' }
+                'Basic / Mid-Grade',
+                'Premium',
+                'High-End'
             ]
         },
-        'bathroom_finish': {
-            message: 'What type of finishes do you prefer?',
+        {
+            // Basement size question
+            detect: (text) => text.toLowerCase().includes('how large is your basement'),
             options: [
-                { text: 'Basic / Mid-Grade', next: 'bathroom_estimate' },
-                { text: 'Premium', next: 'bathroom_estimate' },
-                { text: 'High-End', next: 'bathroom_estimate' }
+                'Small (under 600 sqft)',
+                'Medium (600-900 sqft)',
+                'Large (900+ sqft)'
             ]
         },
-        'bathroom_estimate': {
-            message: 'send_to_webhook',
-            options: null
-        },
-        
-        // BASEMENT FLOW
-        'basement_size': {
-            message: 'How large is your basement?',
+        {
+            // Basement floor condition
+            detect: (text) => text.toLowerCase().includes('condition') && text.toLowerCase().includes('basement floor'),
             options: [
-                { text: 'Small (under 600 sqft)', next: 'basement_condition' },
-                { text: 'Medium (600-900 sqft)', next: 'basement_condition' },
-                { text: 'Large (900+ sqft)', next: 'basement_condition' }
+                'Good shape (may only need waterproofing)',
+                'Cracked/uneven or missing (needs new slab)'
             ]
         },
-        'basement_condition': {
-            message: "What's the condition of your current basement floor?",
+        {
+            // Basement waterproofing
+            detect: (text) => text.toLowerCase().includes('waterproof your basement'),
             options: [
-                { text: 'Good shape (may only need waterproofing)', next: 'basement_waterproof' },
-                { text: 'Cracked/uneven or missing (needs new slab)', next: 'basement_waterproof' }
+                'Yes (French drain + sump pump)',
+                'No (already in place)'
             ]
         },
-        'basement_waterproof': {
-            message: 'Would you like to waterproof your basement before finishing?',
+        {
+            // Add bathroom to basement
+            detect: (text) => text.toLowerCase().includes('add a bathroom') && text.toLowerCase().includes('basement'),
+            options: ['Yes', 'No']
+        },
+        {
+            // Frame additional rooms
+            detect: (text) => text.toLowerCase().includes('frame and finish additional rooms'),
+            options: ['Yes', 'No']
+        },
+        {
+            // Basement finish level
+            detect: (text) => text.toLowerCase().includes('level of finishes') && text.toLowerCase().includes('looking'),
+            options: ['Basic', 'Premium', 'High-End']
+        },
+        {
+            // Home size
+            detect: (text) => text.toLowerCase().includes('approximate size of your home'),
             options: [
-                { text: 'Yes (French drain + sump pump)', next: 'basement_bathroom' },
-                { text: 'No (already in place)', next: 'basement_bathroom' }
+                'Small (under 1,500 sqft)',
+                'Medium (1,500-2,500 sqft)',
+                'Large (2,500+ sqft)'
             ]
         },
-        'basement_bathroom': {
-            message: 'Would you like to add a bathroom to your basement?',
+        {
+            // Areas to remodel
+            detect: (text) => text.toLowerCase().includes('which areas') && text.toLowerCase().includes('remodel'),
+            options: ['Kitchen(s)', 'Bathroom(s)', 'Basement', 'Whole home']
+        },
+        {
+            // Major layout changes
+            detect: (text) => text.toLowerCase().includes('major layout changes'),
             options: [
-                { text: 'Yes', next: 'basement_rooms' },
-                { text: 'No', next: 'basement_rooms' }
+                'Keep layout',
+                'Open concept',
+                'Additions (expand square footage)'
             ]
         },
-        'basement_rooms': {
-            message: 'Would you like us to frame and finish additional rooms?',
+        {
+            // Home finish level
+            detect: (text) => text.toLowerCase().includes('finishes') && text.toLowerCase().includes('considering'),
+            options: ['Basic / Mid-Grade', 'Premium', 'High-End']
+        },
+        {
+            // Initial service selection
+            detect: (text) => text.toLowerCase().includes('kitchen remodel') && 
+                             text.toLowerCase().includes('bathroom remodel') && 
+                             text.toLowerCase().includes('basement remodel'),
             options: [
-                { text: 'Yes', next: 'basement_finish' },
-                { text: 'No', next: 'basement_finish' }
+                'Kitchen Remodel',
+                'Bathroom Remodel',
+                'Basement Remodel',
+                'Full Home Remodel'
             ]
         },
-        'basement_finish': {
-            message: 'What level of finishes are you looking for?',
+        {
+            // Meeting booking
+            detect: (text) => text.toLowerCase().includes('book a meeting'),
+            options: ['Yes, book a meeting', 'No, not right now']
+        },
+        {
+            // Other services
+            detect: (text) => text.toLowerCase().includes('other services'),
             options: [
-                { text: 'Basic', next: 'basement_estimate' },
-                { text: 'Premium', next: 'basement_estimate' },
-                { text: 'High-End', next: 'basement_estimate' }
+                'Kitchen Remodel',
+                'Bathroom Remodel',
+                'Basement Remodel',
+                'Full Home Remodel'
             ]
-        },
-        'basement_estimate': {
-            message: 'send_to_webhook',
-            options: null
-        },
-        
-        // FULL HOME FLOW
-        'home_size': {
-            message: "What's the approximate size of your home?",
-            options: [
-                { text: 'Small (under 1,500 sqft)', next: 'home_areas' },
-                { text: 'Medium (1,500-2,500 sqft)', next: 'home_areas' },
-                { text: 'Large (2,500+ sqft)', next: 'home_areas' }
-            ]
-        },
-        'home_areas': {
-            message: 'Which areas are you looking to remodel?',
-            options: [
-                { text: 'Kitchen(s)', next: 'home_count' },
-                { text: 'Bathroom(s)', next: 'home_count' },
-                { text: 'Basement', next: 'home_count' },
-                { text: 'Whole home', next: 'home_count' }
-            ]
-        },
-        'home_count': {
-            message: 'How many kitchens and bathrooms are included in the remodel?',
-            options: null, // User types number
-            next: 'home_layout'
-        },
-        'home_layout': {
-            message: 'Are you planning any major layout changes?',
-            options: [
-                { text: 'Keep layout', next: 'home_finish' },
-                { text: 'Open concept', next: 'home_finish' },
-                { text: 'Additions (expand square footage)', next: 'home_finish' }
-            ]
-        },
-        'home_finish': {
-            message: 'What type of finishes are you considering across your home?',
-            options: [
-                { text: 'Basic / Mid-Grade', next: 'home_estimate' },
-                { text: 'Premium', next: 'home_estimate' },
-                { text: 'High-End', next: 'home_estimate' }
-            ]
-        },
-        'home_estimate': {
-            message: 'send_to_webhook',
-            options: null
         }
-    };
+    ];
 
     // Load font
     const fontElement = document.createElement('link');
@@ -382,10 +361,7 @@
             }
         } : defaultSettings;
 
-    // State management
     let conversationId = '';
-    let currentStep = 'initial';
-    let conversationData = {};
     let isWaitingForResponse = false;
 
     // Create widget
@@ -439,12 +415,10 @@
     widgetRoot.appendChild(launchButton);
     document.body.appendChild(widgetRoot);
 
-    // DOM refs
     const messagesContainer = chatWindow.querySelector('.chat-messages');
     const messageTextarea = chatWindow.querySelector('.chat-textarea');
     const sendButton = chatWindow.querySelector('.chat-submit');
 
-    // Utils
     function createSessionId(){ return (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2); }
     
     function createTypingIndicator(){
@@ -454,170 +428,168 @@
         return indicator;
     }
 
-    function addBotMessage(text) {
-        const botMessage = document.createElement('div');
-        botMessage.className = 'chat-bubble bot-bubble';
-        botMessage.textContent = text;
-        messagesContainer.appendChild(botMessage);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    function linkifyText(text){
+        const urlPattern = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
+        return text.replace(urlPattern, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link">${url}</a>`);
     }
 
-    function addUserMessage(text) {
-        const userMessage = document.createElement('div');
-        userMessage.className = 'chat-bubble user-bubble';
-        userMessage.textContent = text;
-        messagesContainer.appendChild(userMessage);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    // Detect if AI response should trigger buttons
+    function detectButtons(botText) {
+        for (const trigger of BUTTON_TRIGGERS) {
+            if (trigger.detect(botText)) {
+                return trigger.options;
+            }
+        }
+        return null;
     }
 
-    function showOptions(options, stepKey) {
-        // Remove existing option buttons
-        const existingOptions = messagesContainer.querySelector('.option-buttons');
-        if (existingOptions) existingOptions.remove();
+    // Show option buttons
+    function showButtons(options) {
+        // Remove existing buttons
+        const existingButtons = messagesContainer.querySelector('.option-buttons');
+        if (existingButtons) existingButtons.remove();
 
-        const optionsContainer = document.createElement('div');
-        optionsContainer.className = 'option-buttons';
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.className = 'option-buttons';
 
         options.forEach(option => {
             const button = document.createElement('button');
             button.className = 'option-btn';
-            button.textContent = option.text;
+            button.textContent = option;
             button.addEventListener('click', () => {
-                handleOptionClick(option.text, option.next || CONVERSATION_FLOW[stepKey].next);
-                optionsContainer.remove();
+                submitMessage(option);
+                buttonsContainer.remove();
             });
-            optionsContainer.appendChild(button);
+            buttonsContainer.appendChild(button);
         });
 
-        messagesContainer.appendChild(optionsContainer);
+        messagesContainer.appendChild(buttonsContainer);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    function handleOptionClick(selectedText, nextStep) {
-        // Show user's selection
-        addUserMessage(selectedText);
-        
-        // Store the answer
-        conversationData[currentStep] = selectedText;
-        
-        // Move to next step
-        if (nextStep) {
-            currentStep = nextStep;
-            processStep();
-        }
-    }
+    // Start chat
+    function startChatWithoutRegistration(){
+        if (!conversationId) conversationId = createSessionId();
 
-    async function processStep() {
-        const step = CONVERSATION_FLOW[currentStep];
-        
-        if (!step) {
-            console.error('Invalid step:', currentStep);
-            return;
+        const botMessage = document.createElement('div');
+        botMessage.className = 'chat-bubble bot-bubble';
+        botMessage.textContent = AUTO_GREETING;
+        messagesContainer.appendChild(botMessage);
+
+        // Check if greeting should trigger buttons
+        const buttons = detectButtons(AUTO_GREETING);
+        if (buttons) {
+            showButtons(buttons);
         }
 
-        // Check if we need to send to webhook
-        if (step.message === 'send_to_webhook') {
-            await sendToWebhook();
-            return;
-        }
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-        // Show bot message
-        addBotMessage(step.message);
-
-        // Show options if available
-        if (step.options) {
-            showOptions(step.options, currentStep);
-        } else if (!step.next) {
-            // Enable text input for free-form response
-            messageTextarea.disabled = false;
-            messageTextarea.focus();
-        } else {
-            // Auto-advance for steps without options
-            currentStep = step.next;
-            setTimeout(() => processStep(), 500);
-        }
-    }
-
-    async function sendToWebhook() {
-        if (!settings.webhook?.url) {
-            addBotMessage("Thank you for providing all the information! Our team will get back to you soon.");
-            return;
-        }
-
-        const typing = createTypingIndicator();
-        messagesContainer.appendChild(typing);
-
-        try {
-            // Format the collected data as a message
-            let formattedMessage = "Project Details:\n";
-            for (const [key, value] of Object.entries(conversationData)) {
-                formattedMessage += `${key}: ${value}\n`;
-            }
-
-            const requestData = {
-                action: "sendMessage",
+        if (settings.webhook?.url) {
+            const initData = [{
+                action: "loadPreviousSession",
                 sessionId: conversationId,
                 route: settings.webhook.route || "",
-                chatInput: formattedMessage,
-                metadata: conversationData
-            };
-
-            const response = await fetch(settings.webhook.url, {
+                metadata: {}
+            }];
+            fetch(settings.webhook.url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(initData)
+            }).catch(()=>{});
+        }
+    }
+
+    // Send message
+    async function submitMessage(messageText){
+        if (isWaitingForResponse) return;
+        isWaitingForResponse = true;
+
+        // Remove any existing buttons
+        const existingButtons = messagesContainer.querySelector('.option-buttons');
+        if (existingButtons) existingButtons.remove();
+
+        const requestData = {
+            action: "sendMessage",
+            sessionId: conversationId || (conversationId = createSessionId()),
+            route: settings.webhook.route,
+            chatInput: messageText,
+            metadata: {}
+        };
+
+        // Show user message
+        const userMessage = document.createElement('div');
+        userMessage.className = 'chat-bubble user-bubble';
+        userMessage.textContent = messageText;
+        messagesContainer.appendChild(userMessage);
+
+        // Show typing indicator
+        const typing = createTypingIndicator();
+        messagesContainer.appendChild(typing);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        try{
+            const resp = await fetch(settings.webhook.url, {
+                method: 'POST', 
+                headers: {'Content-Type':'application/json'},
                 body: JSON.stringify(requestData)
             });
+            const data = await resp.json().catch(()=> ({}));
 
-            const data = await response.json().catch(() => ({}));
-            
-            messagesContainer.removeChild(typing);
+            if (typing && typing.parentNode) messagesContainer.removeChild(typing);
 
+            const botMessage = document.createElement('div');
+            botMessage.className = 'chat-bubble bot-bubble';
             const responseText = Array.isArray(data) ? (data[0]?.output || '') : (data?.output || '');
-            addBotMessage(responseText || "Thank you! Based on your selections, let me provide you with an estimate...");
+            botMessage.innerHTML = linkifyText(responseText || "...");
+            messagesContainer.appendChild(botMessage);
 
-        } catch (error) {
-            console.error('Webhook error:', error);
-            messagesContainer.removeChild(typing);
-            addBotMessage("Sorry, there was an error. Please try again.");
+            // Check if response should trigger buttons
+            const buttons = detectButtons(responseText);
+            if (buttons) {
+                showButtons(buttons);
+            }
+
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        }catch(err){
+            console.error('Message submission error:', err);
+            if (typing && typing.parentNode) messagesContainer.removeChild(typing);
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'chat-bubble bot-bubble';
+            errorMessage.textContent = "Sorry, I couldn't send your message. Please try again.";
+            messagesContainer.appendChild(errorMessage);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }finally{
+            isWaitingForResponse = false;
         }
     }
 
-    function handleTextInput(text) {
-        addUserMessage(text);
-        conversationData[currentStep] = text;
-        
-        const step = CONVERSATION_FLOW[currentStep];
-        if (step.next) {
-            currentStep = step.next;
-            processStep();
-        }
-        
-        messageTextarea.value = '';
-        messageTextarea.disabled = true;
-    }
-
-    // Start conversation
-    function startChat() {
-        if (!conversationId) conversationId = createSessionId();
-        currentStep = 'initial';
-        conversationData = {};
-        processStep();
+    // Auto-resize textarea
+    function autoResizeTextarea(){
+        messageTextarea.style.height = 'auto';
+        const h = Math.min(messageTextarea.scrollHeight, 120);
+        messageTextarea.style.height = h + 'px';
     }
 
     // Event listeners
     sendButton.addEventListener('click', () => {
-        const text = messageTextarea.value.trim();
-        if (text && !messageTextarea.disabled) {
-            handleTextInput(text);
+        const messageText = messageTextarea.value.trim();
+        if (messageText && !isWaitingForResponse) {
+            submitMessage(messageText);
+            messageTextarea.value = '';
+            messageTextarea.style.height = 'auto';
         }
     });
 
+    messageTextarea.addEventListener('input', autoResizeTextarea);
     messageTextarea.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            const text = messageTextarea.value.trim();
-            if (text && !messageTextarea.disabled) {
-                handleTextInput(text);
+            const messageText = messageTextarea.value.trim();
+            if (messageText && !isWaitingForResponse) {
+                submitMessage(messageText);
+                messageTextarea.value = '';
+                messageTextarea.style.height = 'auto';
             }
         }
     });
@@ -625,16 +597,15 @@
     let firstOpen = true;
     launchButton.addEventListener('click', () => {
         chatWindow.classList.toggle('visible');
-        if (chatWindow.classList.contains('visible') && firstOpen) {
-            startChat();
-            firstOpen = false;
+        if (chatWindow.classList.contains('visible')) {
+            if (firstOpen) {
+                startChatWithoutRegistration();
+                firstOpen = false;
+            }
         }
     });
 
     chatWindow.querySelector('.chat-close-btn').addEventListener('click', () => {
         chatWindow.classList.remove('visible');
     });
-
-    // Disable textarea initially
-    messageTextarea.disabled = true;
 })();
