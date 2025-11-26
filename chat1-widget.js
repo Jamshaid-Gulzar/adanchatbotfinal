@@ -1,5 +1,5 @@
-// Interactive Chat Widget for n8n - HYBRID WITH SMART BUTTON DETECTION
-// Shows predefined option buttons when AI asks specific questions
+// Interactive Chat Widget for n8n - SIMPLIFIED BUTTON DETECTION
+// More flexible matching to ensure buttons always appear
 (function() {
     if (window.N8nChatWidgetLoaded) return;
     window.N8nChatWidgetLoaded = true;
@@ -7,158 +7,164 @@
     const PRECHAT_ENABLED = false;
     const AUTO_GREETING = "Hello! Adan Construction AI Agent — how can I help you today?";
 
-    // ==== SMART BUTTON DETECTION RULES ====
-    // Map AI questions to button options
-    const BUTTON_TRIGGERS = [
-        {
-            // Kitchen size question
-            detect: (text) => text.toLowerCase().includes('how large is your kitchen'),
-            options: [
+    // ==== SIMPLIFIED BUTTON DETECTION ====
+    // Check for keywords in bot response and show appropriate buttons
+    function getButtonsForResponse(text) {
+        const lowerText = text.toLowerCase();
+        
+        // Kitchen size - check for "kitchen" and ("large" OR "size")
+        if (lowerText.includes('kitchen') && (lowerText.includes('large') || lowerText.includes('size'))) {
+            return [
                 'Small (up to 150 sqft)',
                 'Medium (150-250 sqft)',
                 'Large (250+ sqft / open concept)',
                 'Custom dimensions'
-            ]
-        },
-        {
-            // Kitchen layout question
-            detect: (text) => text.toLowerCase().includes('keeping the same layout') && text.toLowerCase().includes('kitchen'),
-            options: [
+            ];
+        }
+        
+        // Kitchen layout
+        if (lowerText.includes('layout') && lowerText.includes('kitchen') || 
+            (lowerText.includes('open') && lowerText.includes('walls'))) {
+            return [
                 'Keep existing layout',
                 'Open concept (removing walls)'
-            ]
-        },
-        {
-            // Kitchen finish question
-            detect: (text) => text.toLowerCase().includes('finish level') && text.toLowerCase().includes('vision'),
-            options: [
+            ];
+        }
+        
+        // Kitchen finish
+        if ((lowerText.includes('finish') && lowerText.includes('vision')) ||
+            (lowerText.includes('finish level') && lowerText.includes('kitchen'))) {
+            return [
                 'Basic / Mid-Grade',
                 'Premium',
                 'High-End'
-            ]
-        },
-        {
-            // Bathroom size question
-            detect: (text) => text.toLowerCase().includes('what size bathroom'),
-            options: [
+            ];
+        }
+        
+        // Bathroom size
+        if (lowerText.includes('bathroom') && (lowerText.includes('size') || lowerText.includes('renovating'))) {
+            return [
                 'Small (up to 35 sqft - hall/guest bath)',
                 'Medium (40-50 sqft - standard full bath)',
                 'Large (60+ sqft - master bathroom)'
-            ]
-        },
-        {
-            // Bathroom layout question
-            detect: (text) => text.toLowerCase().includes('keeping the same layout') && text.toLowerCase().includes('plumbing'),
-            options: [
+            ];
+        }
+        
+        // Bathroom layout
+        if (lowerText.includes('layout') && lowerText.includes('bathroom') ||
+            lowerText.includes('plumbing fixtures')) {
+            return [
                 'Keep existing layout',
                 'Change layout (move plumbing)'
-            ]
-        },
-        {
-            // Bathroom finish question
-            detect: (text) => text.toLowerCase().includes('type of finishes') && text.toLowerCase().includes('prefer'),
-            options: [
+            ];
+        }
+        
+        // Bathroom finish
+        if (lowerText.includes('finishes') && lowerText.includes('prefer') && lowerText.includes('bathroom')) {
+            return [
                 'Basic / Mid-Grade',
                 'Premium',
                 'High-End'
-            ]
-        },
-        {
-            // Basement size question
-            detect: (text) => text.toLowerCase().includes('how large is your basement'),
-            options: [
+            ];
+        }
+        
+        // Basement size
+        if (lowerText.includes('basement') && (lowerText.includes('large') || lowerText.includes('size'))) {
+            return [
                 'Small (under 600 sqft)',
                 'Medium (600-900 sqft)',
                 'Large (900+ sqft)'
-            ]
-        },
-        {
-            // Basement floor condition
-            detect: (text) => text.toLowerCase().includes('condition') && text.toLowerCase().includes('basement floor'),
-            options: [
+            ];
+        }
+        
+        // Basement floor condition
+        if (lowerText.includes('basement') && lowerText.includes('floor') && lowerText.includes('condition')) {
+            return [
                 'Good shape (may only need waterproofing)',
                 'Cracked/uneven or missing (needs new slab)'
-            ]
-        },
-        {
-            // Basement waterproofing
-            detect: (text) => text.toLowerCase().includes('waterproof your basement'),
-            options: [
+            ];
+        }
+        
+        // Basement waterproofing
+        if (lowerText.includes('waterproof') && lowerText.includes('basement')) {
+            return [
                 'Yes (French drain + sump pump)',
                 'No (already in place)'
-            ]
-        },
-        {
-            // Add bathroom to basement
-            detect: (text) => text.toLowerCase().includes('add a bathroom') && text.toLowerCase().includes('basement'),
-            options: ['Yes', 'No']
-        },
-        {
-            // Frame additional rooms
-            detect: (text) => text.toLowerCase().includes('frame and finish additional rooms'),
-            options: ['Yes', 'No']
-        },
-        {
-            // Basement finish level
-            detect: (text) => text.toLowerCase().includes('level of finishes') && text.toLowerCase().includes('looking'),
-            options: ['Basic', 'Premium', 'High-End']
-        },
-        {
-            // Home size
-            detect: (text) => text.toLowerCase().includes('approximate size of your home'),
-            options: [
+            ];
+        }
+        
+        // Add bathroom to basement
+        if (lowerText.includes('add a bathroom') && lowerText.includes('basement')) {
+            return ['Yes', 'No'];
+        }
+        
+        // Frame additional rooms
+        if (lowerText.includes('frame') && lowerText.includes('additional rooms')) {
+            return ['Yes', 'No'];
+        }
+        
+        // Basement finish
+        if (lowerText.includes('basement') && lowerText.includes('finishes') && lowerText.includes('looking')) {
+            return ['Basic', 'Premium', 'High-End'];
+        }
+        
+        // Home size
+        if (lowerText.includes('home') && lowerText.includes('size') && lowerText.includes('approximate')) {
+            return [
                 'Small (under 1,500 sqft)',
                 'Medium (1,500-2,500 sqft)',
                 'Large (2,500+ sqft)'
-            ]
-        },
-        {
-            // Areas to remodel
-            detect: (text) => text.toLowerCase().includes('which areas') && text.toLowerCase().includes('remodel'),
-            options: ['Kitchen(s)', 'Bathroom(s)', 'Basement', 'Whole home']
-        },
-        {
-            // Major layout changes
-            detect: (text) => text.toLowerCase().includes('major layout changes'),
-            options: [
+            ];
+        }
+        
+        // Areas to remodel
+        if (lowerText.includes('which areas') || lowerText.includes('areas are you looking')) {
+            return ['Kitchen(s)', 'Bathroom(s)', 'Basement', 'Whole home'];
+        }
+        
+        // Major layout changes
+        if (lowerText.includes('major layout changes')) {
+            return [
                 'Keep layout',
                 'Open concept',
                 'Additions (expand square footage)'
-            ]
-        },
-        {
-            // Home finish level
-            detect: (text) => text.toLowerCase().includes('finishes') && text.toLowerCase().includes('considering'),
-            options: ['Basic / Mid-Grade', 'Premium', 'High-End']
-        },
-        {
-            // Initial service selection
-            detect: (text) => text.toLowerCase().includes('kitchen remodel') && 
-                             text.toLowerCase().includes('bathroom remodel') && 
-                             text.toLowerCase().includes('basement remodel'),
-            options: [
-                'Kitchen Remodel',
-                'Bathroom Remodel',
-                'Basement Remodel',
-                'Full Home Remodel'
-            ]
-        },
-        {
-            // Meeting booking
-            detect: (text) => text.toLowerCase().includes('book a meeting'),
-            options: ['Yes, book a meeting', 'No, not right now']
-        },
-        {
-            // Other services
-            detect: (text) => text.toLowerCase().includes('other services'),
-            options: [
-                'Kitchen Remodel',
-                'Bathroom Remodel',
-                'Basement Remodel',
-                'Full Home Remodel'
-            ]
+            ];
         }
-    ];
+        
+        // Home finish
+        if (lowerText.includes('finishes') && lowerText.includes('considering') && lowerText.includes('home')) {
+            return ['Basic / Mid-Grade', 'Premium', 'High-End'];
+        }
+        
+        // Initial service selection - look for all 4 services mentioned
+        if (lowerText.includes('kitchen remodel') && 
+            lowerText.includes('bathroom remodel') && 
+            lowerText.includes('basement remodel')) {
+            return [
+                'Kitchen Remodel',
+                'Bathroom Remodel',
+                'Basement Remodel',
+                'Full Home Remodel'
+            ];
+        }
+        
+        // Meeting booking
+        if (lowerText.includes('book a meeting') || lowerText.includes('book a consultation')) {
+            return ['Yes, book a meeting', 'No, not right now'];
+        }
+        
+        // Other services
+        if (lowerText.includes('other services')) {
+            return [
+                'Kitchen Remodel',
+                'Bathroom Remodel',
+                'Basement Remodel',
+                'Full Home Remodel'
+            ];
+        }
+        
+        return null;
+    }
 
     // Load font
     const fontElement = document.createElement('link');
@@ -326,10 +332,27 @@
         .chat-assist-widget .chat-footer { padding:10px; text-align:center; background:var(--chat-color-surface); border-top:1px solid var(--chat-color-light); }
         .chat-assist-widget .chat-footer-link { color: var(--chat-color-primary); text-decoration:none; font-size:12px; opacity:.85; transition: var(--chat-transition); font-family: inherit; }
         .chat-assist-widget .chat-footer-link:hover { opacity:1; text-decoration: underline; }
+
+        /* Debug indicator */
+        .chat-assist-widget .debug-info {
+            position: fixed;
+            bottom: 650px;
+            right: 20px;
+            background: #fff;
+            border: 2px solid #10b981;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            max-width: 300px;
+            z-index: 10001;
+            display: none;
+        }
+        .chat-assist-widget .debug-info.show {
+            display: block;
+        }
     `;
     document.head.appendChild(widgetStyles);
 
-    // Default settings
     const defaultSettings = {
         webhook: { url: '', route: '' },
         branding: {
@@ -364,7 +387,6 @@
     let conversationId = '';
     let isWaitingForResponse = false;
 
-    // Create widget
     const widgetRoot = document.createElement('div');
     widgetRoot.className = 'chat-assist-widget';
     widgetRoot.style.setProperty('--chat-widget-primary', settings.style.primaryColor);
@@ -433,19 +455,7 @@
         return text.replace(urlPattern, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link">${url}</a>`);
     }
 
-    // Detect if AI response should trigger buttons
-    function detectButtons(botText) {
-        for (const trigger of BUTTON_TRIGGERS) {
-            if (trigger.detect(botText)) {
-                return trigger.options;
-            }
-        }
-        return null;
-    }
-
-    // Show option buttons
     function showButtons(options) {
-        // Remove existing buttons
         const existingButtons = messagesContainer.querySelector('.option-buttons');
         if (existingButtons) existingButtons.remove();
 
@@ -467,7 +477,6 @@
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    // Start chat
     function startChatWithoutRegistration(){
         if (!conversationId) conversationId = createSessionId();
 
@@ -476,9 +485,9 @@
         botMessage.textContent = AUTO_GREETING;
         messagesContainer.appendChild(botMessage);
 
-        // Check if greeting should trigger buttons
-        const buttons = detectButtons(AUTO_GREETING);
+        const buttons = getButtonsForResponse(AUTO_GREETING);
         if (buttons) {
+            console.log('Buttons detected for greeting:', buttons);
             showButtons(buttons);
         }
 
@@ -499,12 +508,10 @@
         }
     }
 
-    // Send message
     async function submitMessage(messageText){
         if (isWaitingForResponse) return;
         isWaitingForResponse = true;
 
-        // Remove any existing buttons
         const existingButtons = messagesContainer.querySelector('.option-buttons');
         if (existingButtons) existingButtons.remove();
 
@@ -516,13 +523,11 @@
             metadata: {}
         };
 
-        // Show user message
         const userMessage = document.createElement('div');
         userMessage.className = 'chat-bubble user-bubble';
         userMessage.textContent = messageText;
         messagesContainer.appendChild(userMessage);
 
-        // Show typing indicator
         const typing = createTypingIndicator();
         messagesContainer.appendChild(typing);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -543,10 +548,14 @@
             botMessage.innerHTML = linkifyText(responseText || "...");
             messagesContainer.appendChild(botMessage);
 
-            // Check if response should trigger buttons
-            const buttons = detectButtons(responseText);
+            // Check for buttons
+            console.log('Checking response for buttons:', responseText);
+            const buttons = getButtonsForResponse(responseText);
             if (buttons) {
+                console.log('Buttons found:', buttons);
                 showButtons(buttons);
+            } else {
+                console.log('No buttons matched for this response');
             }
 
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -564,14 +573,12 @@
         }
     }
 
-    // Auto-resize textarea
     function autoResizeTextarea(){
         messageTextarea.style.height = 'auto';
         const h = Math.min(messageTextarea.scrollHeight, 120);
         messageTextarea.style.height = h + 'px';
     }
 
-    // Event listeners
     sendButton.addEventListener('click', () => {
         const messageText = messageTextarea.value.trim();
         if (messageText && !isWaitingForResponse) {
