@@ -1,141 +1,193 @@
-// Interactive Chat Widget for n8n (DIRECT-START VERSION WITH QUICK REPLY OPTIONS)
-// Features: 1) No name/email  2) Auto greeting  3) Quick reply buttons for services
+// Interactive Chat Widget for n8n - WITH PROACTIVE OPTION BUTTONS
+// Users click predefined options instead of typing
 (function() {
     // Initialize widget only once
     if (window.N8nChatWidgetLoaded) return;
     window.N8nChatWidgetLoaded = true;
 
-    // ==== SETTINGS (toggle) ====
-    const PRECHAT_ENABLED = false; // ⛔ false => name/email never asked
+    // ==== SETTINGS ====
+    const PRECHAT_ENABLED = false;
     const AUTO_GREETING = "Hello! Adan Construction AI Agent — how can I help you today?";
 
-    // ==== QUICK REPLY OPTIONS CONFIGURATION ====
-    // Define keywords that trigger quick reply buttons and their options
-    const QUICK_REPLY_TRIGGERS = {
-        // Kitchen Size
-        'how large is your kitchen': {
-            options: ['Small (up to 150 sqft)', 'Medium (150-250 sqft)', 'Large (250+ sqft / open concept)', 'Custom dimensions'],
-            message: 'Select kitchen size'
+    // ==== CONVERSATION FLOW WITH PREDEFINED OPTIONS ====
+    const CONVERSATION_FLOW = {
+        // Initial service selection
+        'initial': {
+            message: AUTO_GREETING,
+            options: [
+                { text: 'Kitchen Remodel', next: 'kitchen_size' },
+                { text: 'Bathroom Remodel', next: 'bathroom_size' },
+                { text: 'Basement Remodel', next: 'basement_size' },
+                { text: 'Full Home Remodel', next: 'home_size' }
+            ]
         },
         
-        // Bathroom Size
-        'what size bathroom': {
-            options: ['Small (up to 35 sqft - hall/guest bath)', 'Medium (40-50 sqft - standard full bath)', 'Large (60+ sqft - master bathroom)'],
-            message: 'Select bathroom size'
+        // KITCHEN FLOW
+        'kitchen_size': {
+            message: 'How large is your kitchen?',
+            options: [
+                { text: 'Small (up to 150 sqft)', next: 'kitchen_layout' },
+                { text: 'Medium (150-250 sqft)', next: 'kitchen_layout' },
+                { text: 'Large (250+ sqft / open concept)', next: 'kitchen_layout' },
+                { text: 'Custom dimensions', next: 'kitchen_custom' }
+            ]
+        },
+        'kitchen_custom': {
+            message: 'Please provide the length × width of your kitchen.',
+            options: null, // User types here
+            next: 'kitchen_layout'
+        },
+        'kitchen_layout': {
+            message: 'Are you keeping the same layout or opening walls for an open concept?',
+            options: [
+                { text: 'Keep existing layout', next: 'kitchen_finish' },
+                { text: 'Open concept (removing walls)', next: 'kitchen_finish' }
+            ]
+        },
+        'kitchen_finish': {
+            message: 'What finish level best describes your vision?',
+            options: [
+                { text: 'Basic / Mid-Grade', next: 'kitchen_estimate' },
+                { text: 'Premium', next: 'kitchen_estimate' },
+                { text: 'High-End', next: 'kitchen_estimate' }
+            ]
+        },
+        'kitchen_estimate': {
+            message: 'send_to_webhook', // Special flag to send collected data
+            options: null
         },
         
-        // Basement Size
-        'how large is your basement': {
-            options: ['Small (under 600 sqft)', 'Medium (600-900 sqft)', 'Large (900+ sqft)'],
-            message: 'Select basement size'
+        // BATHROOM FLOW
+        'bathroom_size': {
+            message: 'What size bathroom are you renovating?',
+            options: [
+                { text: 'Small (up to 35 sqft - hall/guest bath)', next: 'bathroom_layout' },
+                { text: 'Medium (40-50 sqft - standard full bath)', next: 'bathroom_layout' },
+                { text: 'Large (60+ sqft - master bathroom)', next: 'bathroom_layout' }
+            ]
+        },
+        'bathroom_layout': {
+            message: 'Are you keeping the same layout or moving plumbing fixtures?',
+            options: [
+                { text: 'Keep existing layout', next: 'bathroom_finish' },
+                { text: 'Change layout (move plumbing)', next: 'bathroom_finish' }
+            ]
+        },
+        'bathroom_finish': {
+            message: 'What type of finishes do you prefer?',
+            options: [
+                { text: 'Basic / Mid-Grade', next: 'bathroom_estimate' },
+                { text: 'Premium', next: 'bathroom_estimate' },
+                { text: 'High-End', next: 'bathroom_estimate' }
+            ]
+        },
+        'bathroom_estimate': {
+            message: 'send_to_webhook',
+            options: null
         },
         
-        // Home Size
-        'approximate size of your home': {
-            options: ['Small (under 1,500 sqft)', 'Medium (1,500-2,500 sqft)', 'Large (2,500+ sqft)'],
-            message: 'Select home size'
+        // BASEMENT FLOW
+        'basement_size': {
+            message: 'How large is your basement?',
+            options: [
+                { text: 'Small (under 600 sqft)', next: 'basement_condition' },
+                { text: 'Medium (600-900 sqft)', next: 'basement_condition' },
+                { text: 'Large (900+ sqft)', next: 'basement_condition' }
+            ]
+        },
+        'basement_condition': {
+            message: "What's the condition of your current basement floor?",
+            options: [
+                { text: 'Good shape (may only need waterproofing)', next: 'basement_waterproof' },
+                { text: 'Cracked/uneven or missing (needs new slab)', next: 'basement_waterproof' }
+            ]
+        },
+        'basement_waterproof': {
+            message: 'Would you like to waterproof your basement before finishing?',
+            options: [
+                { text: 'Yes (French drain + sump pump)', next: 'basement_bathroom' },
+                { text: 'No (already in place)', next: 'basement_bathroom' }
+            ]
+        },
+        'basement_bathroom': {
+            message: 'Would you like to add a bathroom to your basement?',
+            options: [
+                { text: 'Yes', next: 'basement_rooms' },
+                { text: 'No', next: 'basement_rooms' }
+            ]
+        },
+        'basement_rooms': {
+            message: 'Would you like us to frame and finish additional rooms?',
+            options: [
+                { text: 'Yes', next: 'basement_finish' },
+                { text: 'No', next: 'basement_finish' }
+            ]
+        },
+        'basement_finish': {
+            message: 'What level of finishes are you looking for?',
+            options: [
+                { text: 'Basic', next: 'basement_estimate' },
+                { text: 'Premium', next: 'basement_estimate' },
+                { text: 'High-End', next: 'basement_estimate' }
+            ]
+        },
+        'basement_estimate': {
+            message: 'send_to_webhook',
+            options: null
         },
         
-        // Layout Questions - Kitchen/Bathroom
-        'keeping the same layout': {
-            options: ['Keep existing layout', 'Open concept / Change layout'],
-            message: 'Select layout option'
+        // FULL HOME FLOW
+        'home_size': {
+            message: "What's the approximate size of your home?",
+            options: [
+                { text: 'Small (under 1,500 sqft)', next: 'home_areas' },
+                { text: 'Medium (1,500-2,500 sqft)', next: 'home_areas' },
+                { text: 'Large (2,500+ sqft)', next: 'home_areas' }
+            ]
         },
-        'same layout or opening walls': {
-            options: ['Keep existing layout', 'Open concept'],
-            message: 'Select layout option'
+        'home_areas': {
+            message: 'Which areas are you looking to remodel?',
+            options: [
+                { text: 'Kitchen(s)', next: 'home_count' },
+                { text: 'Bathroom(s)', next: 'home_count' },
+                { text: 'Basement', next: 'home_count' },
+                { text: 'Whole home', next: 'home_count' }
+            ]
         },
-        'same layout or moving plumbing': {
-            options: ['Keep existing layout', 'Change layout'],
-            message: 'Select layout option'
+        'home_count': {
+            message: 'How many kitchens and bathrooms are included in the remodel?',
+            options: null, // User types number
+            next: 'home_layout'
         },
-        
-        // Structural Changes - Full Home
-        'major layout changes': {
-            options: ['Keep layout', 'Open concept', 'Additions (expand square footage)'],
-            message: 'Select structural option'
+        'home_layout': {
+            message: 'Are you planning any major layout changes?',
+            options: [
+                { text: 'Keep layout', next: 'home_finish' },
+                { text: 'Open concept', next: 'home_finish' },
+                { text: 'Additions (expand square footage)', next: 'home_finish' }
+            ]
         },
-        
-        // Finish Level Questions
-        'finish level best describes': {
-            options: ['Basic / Mid-Grade', 'Premium', 'High-End'],
-            message: 'Select finish level'
+        'home_finish': {
+            message: 'What type of finishes are you considering across your home?',
+            options: [
+                { text: 'Basic / Mid-Grade', next: 'home_estimate' },
+                { text: 'Premium', next: 'home_estimate' },
+                { text: 'High-End', next: 'home_estimate' }
+            ]
         },
-        'what type of finishes do you prefer': {
-            options: ['Basic / Mid-Grade', 'Premium', 'High-End'],
-            message: 'Select finish level'
-        },
-        'level of finishes are you looking': {
-            options: ['Basic', 'Premium', 'High-End'],
-            message: 'Select finish level'
-        },
-        'finishes are you considering': {
-            options: ['Basic / Mid-Grade', 'Premium', 'High-End'],
-            message: 'Select finish level'
-        },
-        
-        // Basement Specific Questions
-        'condition of your current basement floor': {
-            options: ['Good shape (may only need waterproofing & flooring)', 'Cracked/uneven or missing (needs new slab)'],
-            message: 'Select floor condition'
-        },
-        'waterproof your basement': {
-            options: ['Yes (French drain + sump pump)', 'No (already in place)'],
-            message: 'Select waterproofing option'
-        },
-        'add a bathroom to your basement': {
-            options: ['Yes', 'No'],
-            message: 'Select option'
-        },
-        'frame and finish additional rooms': {
-            options: ['Yes', 'No'],
-            message: 'Select option'
-        },
-        
-        // Full Home - Scope of Work
-        'which areas are you looking to remodel': {
-            options: ['Kitchen(s)', 'Bathroom(s)', 'Basement', 'Whole home'],
-            message: 'Select areas to remodel'
-        },
-        
-        // Meeting/Booking Questions
-        'book a meeting': {
-            options: ['Yes', 'No / Not right now'],
-            message: 'Would you like to schedule?'
-        },
-        'more information about any of our other services': {
-            options: ['Kitchen Remodel', 'Bathroom Remodel', 'Basement Remodel', 'Full Home Remodel'],
-            message: 'Select a service'
-        },
-        
-        // Timeline triggers
-        'when would you like to start': {
-            options: ['ASAP', 'Within 1 Month', '1-3 Months', '3-6 Months', 'Just Planning'],
-            message: 'Select your timeline'
-        },
-        'preferred date & time': {
-            options: ['ASAP', 'Within 1 Month', '1-3 Months', '3-6 Months', 'Just Planning'],
-            message: 'Select your preferred timeline'
-        },
-        
-        // Budget triggers
-        'budget': {
-            options: ['Under $10K', '$10K - $25K', '$25K - $50K', '$50K - $100K', 'Over $100K'],
-            message: 'Select budget range'
-        },
-        'cost': {
-            options: ['Under $10K', '$10K - $25K', '$25K - $50K', '$50K - $100K', 'Over $100K'],
-            message: 'Select budget range'
+        'home_estimate': {
+            message: 'send_to_webhook',
+            options: null
         }
     };
 
-    // Load font resource - using Poppins for a fresh look
+    // Load font
     const fontElement = document.createElement('link');
     fontElement.rel = 'stylesheet';
     fontElement.href = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap';
     document.head.appendChild(fontElement);
 
-    // Apply widget styles (including new quick reply button styles)
+    // Styles
     const widgetStyles = document.createElement('style');
     widgetStyles.textContent = `
         .chat-assist-widget {
@@ -201,22 +253,7 @@
         }
         .chat-assist-widget .chat-close-btn:hover { background: rgba(255,255,255,0.3); transform: translateY(-50%) scale(1.1); }
 
-        .chat-assist-widget .chat-welcome {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            padding: 24px; text-align: center; width: 100%; max-width: 320px;
-        }
-        .chat-assist-widget .chat-welcome-title { font-size: 22px; font-weight: 700; color: var(--chat-color-text); margin-bottom: 24px; line-height: 1.3; }
-        .chat-assist-widget .chat-start-btn {
-            display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
-            padding: 14px 20px; background: linear-gradient(135deg, var(--chat-color-primary) 0%, var(--chat-color-secondary) 100%);
-            color: white; border: none; border-radius: var(--chat-radius-md); cursor: pointer; font-size: 15px;
-            transition: var(--chat-transition); font-weight: 600; font-family: inherit; margin-bottom: 16px; box-shadow: var(--chat-shadow-md);
-        }
-        .chat-assist-widget .chat-start-btn:hover { transform: translateY(-2px); box-shadow: var(--chat-shadow-lg); }
-        .chat-assist-widget .chat-response-time { font-size: 14px; color: var(--chat-color-text-light); margin: 0; }
-
-        .chat-assist-widget .chat-body { display: none; flex-direction: column; height: 100%; }
-        .chat-assist-widget .chat-body.active { display: flex; }
+        .chat-assist-widget .chat-body { display: flex; flex-direction: column; height: 100%; }
         .chat-assist-widget .chat-messages {
             flex:1; overflow-y:auto; padding:20px; background:#f9fafb; display:flex; flex-direction:column; gap:12px;
         }
@@ -236,8 +273,7 @@
             background: white; color: var(--chat-color-text); align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: var(--chat-shadow-sm); border:1px solid var(--chat-color-light);
         }
 
-        /* Quick Reply Buttons Styles */
-        .chat-assist-widget .quick-replies {
+        .chat-assist-widget .option-buttons {
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -246,7 +282,7 @@
             width: 100%;
             max-width: 90%;
         }
-        .chat-assist-widget .quick-reply-btn {
+        .chat-assist-widget .option-btn {
             padding: 12px 16px;
             background: white;
             border: 2px solid var(--chat-color-primary);
@@ -263,13 +299,13 @@
             word-wrap: break-word;
             white-space: normal;
         }
-        .chat-assist-widget .quick-reply-btn:hover {
+        .chat-assist-widget .option-btn:hover {
             background: var(--chat-color-primary);
             color: white;
             transform: translateX(4px);
             box-shadow: var(--chat-shadow-md);
         }
-        .chat-assist-widget .quick-reply-btn:active {
+        .chat-assist-widget .option-btn:active {
             transform: translateX(4px) scale(0.98);
         }
 
@@ -311,39 +347,15 @@
         .chat-assist-widget .chat-footer { padding:10px; text-align:center; background:var(--chat-color-surface); border-top:1px solid var(--chat-color-light); }
         .chat-assist-widget .chat-footer-link { color: var(--chat-color-primary); text-decoration:none; font-size:12px; opacity:.85; transition: var(--chat-transition); font-family: inherit; }
         .chat-assist-widget .chat-footer-link:hover { opacity:1; text-decoration: underline; }
-
-        /* Registration (kept for compatibility but hidden if PRECHAT_ENABLED=false) */
-        .chat-assist-widget .user-registration {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            padding: 24px; text-align: center; width: 100%; max-width: 320px; display: none;
-        }
-        .chat-assist-widget .user-registration.active { display: block; }
-        .chat-assist-widget .registration-title { font-size: 18px; font-weight: 600; color: var(--chat-color-text); margin-bottom: 16px; line-height: 1.3; }
-        .chat-assist-widget .registration-form { display:flex; flex-direction:column; gap:12px; margin-bottom:16px; }
-        .chat-assist-widget .form-field { display:flex; flex-direction:column; gap:4px; text-align:left; }
-        .chat-assist-widget .form-label { font-size:14px; font-weight:500; color: var(--chat-color-text); }
-        .chat-assist-widget .form-input { padding:12px 14px; border:1px solid var(--chat-color-border); border-radius: var(--chat-radius-md); font-family: inherit; font-size: 14px; transition: var(--chat-transition); }
-        .chat-assist-widget .form-input:focus { outline:none; border-color:var(--chat-color-primary); box-shadow:0 0 0 3px rgba(16,185,129,.2); }
-        .chat-assist-widget .form-input.error { border-color:#ef4444; }
-        .chat-assist-widget .error-text { font-size:12px; color:#ef4444; margin-top:2px; }
-        .chat-assist-widget .submit-registration {
-            display:flex; align-items:center; justify-content:center; width:100%; padding:14px 20px;
-            background: linear-gradient(135deg, var(--chat-color-primary) 0%, var(--chat-color-secondary) 100%);
-            color:white; border:none; border-radius: var(--chat-radius-md); cursor:pointer; font-size:15px; transition: var(--chat-transition); font-weight:600; font-family:inherit; box-shadow: var(--chat-shadow-md);
-        }
-        .chat-assist-widget .submit-registration:hover { transform: translateY(-2px); box-shadow: var(--chat-shadow-lg); }
-        .chat-assist-widget .submit-registration:disabled { opacity:.7; cursor:not-allowed; transform:none; }
     `;
     document.head.appendChild(widgetStyles);
 
-    // Default configuration
+    // Default settings
     const defaultSettings = {
         webhook: { url: '', route: '' },
         branding: {
             logo: '',
             name: 'Adan Construction',
-            welcomeText: 'We're here to help!',
-            responseTimeText: 'Typically replies in a few minutes',
             poweredBy: {
                 text: 'Powered by Adan Construction',
                 link: 'https://www.adanconstruction.net/'
@@ -355,11 +367,9 @@
             position: 'right',
             backgroundColor: '#ffffff',
             fontColor: '#1f2937'
-        },
-        suggestedQuestions: []
+        }
     };
 
-    // Merge user settings with defaults
     const settings = window.ChatWidgetConfig ?
         {
             webhook: { ...defaultSettings.webhook, ...window.ChatWidgetConfig.webhook },
@@ -369,68 +379,33 @@
                 ...window.ChatWidgetConfig.style,
                 primaryColor: window.ChatWidgetConfig.style?.primaryColor === '#854fff' ? '#10b981' : (window.ChatWidgetConfig.style?.primaryColor || '#10b981'),
                 secondaryColor: window.ChatWidgetConfig.style?.secondaryColor === '#6b3fd4' ? '#059669' : (window.ChatWidgetConfig.style?.secondaryColor || '#059669')
-            },
-            suggestedQuestions: window.ChatWidgetConfig.suggestedQuestions || defaultSettings.suggestedQuestions
+            }
         } : defaultSettings;
 
-    // Session tracking
+    // State management
     let conversationId = '';
+    let currentStep = 'initial';
+    let conversationData = {};
     let isWaitingForResponse = false;
 
-    // Create widget DOM structure
+    // Create widget
     const widgetRoot = document.createElement('div');
     widgetRoot.className = 'chat-assist-widget';
-
-    // Apply custom colors
     widgetRoot.style.setProperty('--chat-widget-primary', settings.style.primaryColor);
     widgetRoot.style.setProperty('--chat-widget-secondary', settings.style.secondaryColor);
     widgetRoot.style.setProperty('--chat-widget-tertiary', settings.style.secondaryColor);
     widgetRoot.style.setProperty('--chat-widget-surface', settings.style.backgroundColor);
     widgetRoot.style.setProperty('--chat-widget-text', settings.style.fontColor);
 
-    // Create chat panel
     const chatWindow = document.createElement('div');
     chatWindow.className = `chat-window ${settings.style.position === 'left' ? 'left-side' : 'right-side'}`;
 
-    // Welcome header + screen
-    const welcomeScreenHTML = `
+    chatWindow.innerHTML = `
         <div class="chat-header">
             <img class="chat-header-logo" src="${settings.branding.logo}" alt="${settings.branding.name}">
             <span class="chat-header-title">${settings.branding.name}</span>
             <button class="chat-close-btn" aria-label="Close chat">×</button>
         </div>
-        <div class="chat-welcome">
-            <h2 class="chat-welcome-title">${settings.branding.welcomeText}</h2>
-            <button class="chat-start-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                Start chatting
-            </button>
-            <p class="chat-response-time">${settings.branding.responseTimeText}</p>
-        </div>
-        <div class="user-registration">
-            <h2 class="registration-title">Please enter your details to start chatting</h2>
-            <form class="registration-form">
-                <div class="form-field">
-                    <label class="form-label" for="chat-user-name">Name</label>
-                    <input type="text" id="chat-user-name" class="form-input" placeholder="Your name" required>
-                    <div class="error-text" id="name-error"></div>
-                </div>
-                <div class="form-field">
-                    <label class="form-label" for="chat-user-email">Email</label>
-                    <input type="email" id="chat-user-email" class="form-input" placeholder="Your email address" required>
-                    <div class="error-text" id="email-error"></div>
-                </div>
-                <button type="submit" class="submit-registration">Continue to Chat</button>
-            </form>
-        </div>
-    `;
-
-    // Main chat interface
-    const chatInterfaceHTML = `
         <div class="chat-body">
             <div class="chat-messages"></div>
             <div class="chat-controls">
@@ -450,9 +425,6 @@
         </div>
     `;
 
-    chatWindow.innerHTML = welcomeScreenHTML + chatInterfaceHTML;
-
-    // Toggle launcher
     const launchButton = document.createElement('button');
     launchButton.className = `chat-launcher ${settings.style.position === 'left' ? 'left-side' : 'right-side'}`;
     launchButton.innerHTML = `
@@ -463,337 +435,206 @@
         </svg>
         <span class="chat-launcher-text">Need help?</span>`;
 
-    // Mount
     widgetRoot.appendChild(chatWindow);
     widgetRoot.appendChild(launchButton);
     document.body.appendChild(widgetRoot);
 
     // DOM refs
-    const startChatButton = chatWindow.querySelector('.chat-start-btn');
-    const chatBody = chatWindow.querySelector('.chat-body');
     const messagesContainer = chatWindow.querySelector('.chat-messages');
     const messageTextarea = chatWindow.querySelector('.chat-textarea');
     const sendButton = chatWindow.querySelector('.chat-submit');
 
-    // Registration elements (kept for compatibility)
-    const registrationForm = chatWindow.querySelector('.registration-form');
-    const userRegistration = chatWindow.querySelector('.user-registration');
-    const chatWelcome = chatWindow.querySelector('.chat-welcome');
-    const nameInput = chatWindow.querySelector('#chat-user-name');
-    const emailInput = chatWindow.querySelector('#chat-user-email');
-    const nameError = chatWindow.querySelector('#name-error');
-    const emailError = chatWindow.querySelector('#email-error');
-
     // Utils
     function createSessionId(){ return (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2); }
+    
     function createTypingIndicator(){
         const indicator = document.createElement('div');
         indicator.className = 'typing-indicator';
         indicator.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
         return indicator;
     }
-    function linkifyText(text){
-        const urlPattern = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
-        return text.replace(urlPattern, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link">${url}</a>`);
+
+    function addBotMessage(text) {
+        const botMessage = document.createElement('div');
+        botMessage.className = 'chat-bubble bot-bubble';
+        botMessage.textContent = text;
+        messagesContainer.appendChild(botMessage);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    // ==== NEW: Check if message contains trigger keywords and show quick replies ====
-    function checkForQuickReplies(botResponseText) {
-        const lowerText = botResponseText.toLowerCase();
-        
-        // Check each trigger keyword - now looks for partial matches
-        for (const [trigger, config] of Object.entries(QUICK_REPLY_TRIGGERS)) {
-            if (lowerText.includes(trigger.toLowerCase())) {
-                return config;
-            }
-        }
-        return null;
+    function addUserMessage(text) {
+        const userMessage = document.createElement('div');
+        userMessage.className = 'chat-bubble user-bubble';
+        userMessage.textContent = text;
+        messagesContainer.appendChild(userMessage);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    // ==== NEW: Create and display quick reply buttons ====
-    function displayQuickReplies(options) {
-        // Remove any existing quick replies first
-        const existingReplies = messagesContainer.querySelector('.quick-replies');
-        if (existingReplies) {
-            existingReplies.remove();
-        }
+    function showOptions(options, stepKey) {
+        // Remove existing option buttons
+        const existingOptions = messagesContainer.querySelector('.option-buttons');
+        if (existingOptions) existingOptions.remove();
 
-        const quickRepliesContainer = document.createElement('div');
-        quickRepliesContainer.className = 'quick-replies';
+        const optionsContainer = document.createElement('div');
+        optionsContainer.className = 'option-buttons';
 
         options.forEach(option => {
             const button = document.createElement('button');
-            button.className = 'quick-reply-btn';
-            button.textContent = option;
+            button.className = 'option-btn';
+            button.textContent = option.text;
             button.addEventListener('click', () => {
-                // Remove quick replies after selection
-                quickRepliesContainer.remove();
-                // Send the selected option as a message
-                submitMessage(option);
+                handleOptionClick(option.text, option.next || CONVERSATION_FLOW[stepKey].next);
+                optionsContainer.remove();
             });
-            quickRepliesContainer.appendChild(button);
+            optionsContainer.appendChild(button);
         });
 
-        messagesContainer.appendChild(quickRepliesContainer);
+        messagesContainer.appendChild(optionsContainer);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
-    function showRegistrationForm(){
-        chatWelcome.style.display = 'none';
-        userRegistration.classList.add('active');
-    }
-
-    // === DIRECT START without registration ===
-    function startChatWithoutRegistration(){
-        chatWelcome.style.display = 'none';
-        userRegistration.classList.remove('active');
-        chatBody.classList.add('active');
-
-        if (!conversationId) conversationId = createSessionId();
-
-        // Local instant greeting
-        const botMessage = document.createElement('div');
-        botMessage.className = 'chat-bubble bot-bubble';
-        botMessage.textContent = AUTO_GREETING;
-        messagesContainer.appendChild(botMessage);
+    function handleOptionClick(selectedText, nextStep) {
+        // Show user's selection
+        addUserMessage(selectedText);
         
-        // Check if greeting should trigger quick replies
-        const quickReplyConfig = checkForQuickReplies(AUTO_GREETING);
-        if (quickReplyConfig) {
-            displayQuickReplies(quickReplyConfig.options);
+        // Store the answer
+        conversationData[currentStep] = selectedText;
+        
+        // Move to next step
+        if (nextStep) {
+            currentStep = nextStep;
+            processStep();
         }
-        
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
 
-        // Optional: load/init session on backend
-        if (settings.webhook?.url) {
-            const initData = [{
-                action: "loadPreviousSession",
+    async function processStep() {
+        const step = CONVERSATION_FLOW[currentStep];
+        
+        if (!step) {
+            console.error('Invalid step:', currentStep);
+            return;
+        }
+
+        // Check if we need to send to webhook
+        if (step.message === 'send_to_webhook') {
+            await sendToWebhook();
+            return;
+        }
+
+        // Show bot message
+        addBotMessage(step.message);
+
+        // Show options if available
+        if (step.options) {
+            showOptions(step.options, currentStep);
+        } else if (!step.next) {
+            // Enable text input for free-form response
+            messageTextarea.disabled = false;
+            messageTextarea.focus();
+        } else {
+            // Auto-advance for steps without options
+            currentStep = step.next;
+            setTimeout(() => processStep(), 500);
+        }
+    }
+
+    async function sendToWebhook() {
+        if (!settings.webhook?.url) {
+            addBotMessage("Thank you for providing all the information! Our team will get back to you soon.");
+            return;
+        }
+
+        const typing = createTypingIndicator();
+        messagesContainer.appendChild(typing);
+
+        try {
+            // Format the collected data as a message
+            let formattedMessage = "Project Details:\n";
+            for (const [key, value] of Object.entries(conversationData)) {
+                formattedMessage += `${key}: ${value}\n`;
+            }
+
+            const requestData = {
+                action: "sendMessage",
                 sessionId: conversationId,
                 route: settings.webhook.route || "",
-                metadata: {}
-            }];
-            fetch(settings.webhook.url, {
+                chatInput: formattedMessage,
+                metadata: conversationData
+            };
+
+            const response = await fetch(settings.webhook.url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(initData)
-            }).catch(()=>{});
-        }
-    }
-
-    // Registration submit (kept if someone enables PRECHAT)
-    async function handleRegistration(e){
-        e.preventDefault();
-        nameError.textContent=''; emailError.textContent='';
-        nameInput.classList.remove('error'); emailInput.classList.remove('error');
-
-        const nameVal = nameInput.value.trim();
-        const emailVal = emailInput.value.trim();
-        let ok = true;
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!nameVal){ nameError.textContent='Please enter your name'; nameInput.classList.add('error'); ok=false; }
-        if (!emailVal){ emailError.textContent='Please enter your email'; emailInput.classList.add('error'); ok=false; }
-        else if (!emailRegex.test(emailVal)){ emailError.textContent='Please enter a valid email address'; emailInput.classList.add('error'); ok=false; }
-        if (!ok) return;
-
-        conversationId = createSessionId();
-
-        // UI
-        userRegistration.classList.remove('active');
-        chatBody.classList.add('active');
-
-        const typing = createTypingIndicator();
-        messagesContainer.appendChild(typing);
-
-        try{
-            // load session
-            const sessionData = [{
-                action:"loadPreviousSession",
-                sessionId:conversationId,
-                route: settings.webhook.route,
-                metadata: { userId: emailVal, userName: nameVal }
-            }];
-            const r1 = await fetch(settings.webhook.url, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify(sessionData)
-            });
-            await r1.json().catch(()=> ({}));
-
-            // send user info as first message
-            const userInfoData = {
-                action:"sendMessage",
-                sessionId: conversationId,
-                route: settings.webhook.route,
-                chatInput: `Name: ${nameVal}\nEmail: ${emailVal}`,
-                metadata: { userId: emailVal, userName: nameVal, isUserInfo: true }
-            };
-            const r2 = await fetch(settings.webhook.url, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify(userInfoData)
-            });
-            const d2 = await r2.json().catch(()=> ({}));
-
-            messagesContainer.removeChild(typing);
-
-            const botMessage = document.createElement('div');
-            botMessage.className = 'chat-bubble bot-bubble';
-            const messageText = Array.isArray(d2) ? d2[0]?.output || '' : d2?.output || '';
-            botMessage.innerHTML = linkifyText(messageText || AUTO_GREETING);
-            messagesContainer.appendChild(botMessage);
-
-            // Check for quick replies in bot response
-            const quickReplyConfig = checkForQuickReplies(messageText);
-            if (quickReplyConfig) {
-                displayQuickReplies(quickReplyConfig.options);
-            }
-
-            // Suggested questions (if any)
-            if (Array.isArray(settings.suggestedQuestions) && settings.suggestedQuestions.length){
-                const wrap = document.createElement('div'); wrap.className='suggested-questions';
-                settings.suggestedQuestions.forEach(q=>{
-                    const b = document.createElement('button');
-                    b.className='suggested-question-btn'; b.textContent=q;
-                    b.addEventListener('click', ()=>{ submitMessage(q); wrap.remove(); });
-                    wrap.appendChild(b);
-                });
-                messagesContainer.appendChild(wrap);
-            }
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-        }catch(err){
-            console.error('Registration error:', err);
-            if (typing && typing.parentNode) messagesContainer.removeChild(typing);
-            const errorMessage = document.createElement('div');
-            errorMessage.className = 'chat-bubble bot-bubble';
-            errorMessage.textContent = "Sorry, I couldn't connect to the server. Please try again later.";
-            messagesContainer.appendChild(errorMessage);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-    }
-
-    // Send a message to webhook
-    async function submitMessage(messageText){
-        if (isWaitingForResponse) return;
-        isWaitingForResponse = true;
-
-        // Remove any existing quick replies when user sends a message
-        const existingReplies = messagesContainer.querySelector('.quick-replies');
-        if (existingReplies) {
-            existingReplies.remove();
-        }
-
-        // Since pre-chat is bypassed, don't send PII
-        const nameVal = PRECHAT_ENABLED ? (nameInput?.value.trim() || "") : "";
-        const emailVal = PRECHAT_ENABLED ? (emailInput?.value.trim() || "") : "";
-
-        const requestData = {
-            action: "sendMessage",
-            sessionId: conversationId || (conversationId = createSessionId()),
-            route: settings.webhook.route,
-            chatInput: messageText,
-            metadata: { userId: emailVal, userName: nameVal }
-        };
-
-        // UI: echo user message
-        const userMessage = document.createElement('div');
-        userMessage.className = 'chat-bubble user-bubble';
-        userMessage.textContent = messageText;
-        messagesContainer.appendChild(userMessage);
-
-        // typing
-        const typing = createTypingIndicator();
-        messagesContainer.appendChild(typing);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-        try{
-            const resp = await fetch(settings.webhook.url, {
-                method: 'POST', headers: {'Content-Type':'application/json'},
                 body: JSON.stringify(requestData)
             });
-            const data = await resp.json().catch(()=> ({}));
 
-            if (typing && typing.parentNode) messagesContainer.removeChild(typing);
+            const data = await response.json().catch(() => ({}));
+            
+            messagesContainer.removeChild(typing);
 
-            const botMessage = document.createElement('div');
-            botMessage.className = 'chat-bubble bot-bubble';
             const responseText = Array.isArray(data) ? (data[0]?.output || '') : (data?.output || '');
-            botMessage.innerHTML = linkifyText(responseText || "...");
-            messagesContainer.appendChild(botMessage);
+            addBotMessage(responseText || "Thank you! Based on your selections, let me provide you with an estimate...");
 
-            // ==== NEW: Check if bot response should trigger quick replies ====
-            const quickReplyConfig = checkForQuickReplies(responseText);
-            if (quickReplyConfig) {
-                displayQuickReplies(quickReplyConfig.options);
-            }
-
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-        }catch(err){
-            console.error('Message submission error:', err);
-            if (typing && typing.parentNode) messagesContainer.removeChild(typing);
-            const errorMessage = document.createElement('div');
-            errorMessage.className = 'chat-bubble bot-bubble';
-            errorMessage.textContent = "Sorry, I couldn't send your message. Please try again.";
-            messagesContainer.appendChild(errorMessage);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }finally{
-            isWaitingForResponse = false;
+        } catch (error) {
+            console.error('Webhook error:', error);
+            messagesContainer.removeChild(typing);
+            addBotMessage("Sorry, there was an error. Please try again.");
         }
     }
 
-    // Auto-resize textarea
-    function autoResizeTextarea(){
-        messageTextarea.style.height = 'auto';
-        const h = Math.min(messageTextarea.scrollHeight, 120);
-        messageTextarea.style.height = h + 'px';
+    function handleTextInput(text) {
+        addUserMessage(text);
+        conversationData[currentStep] = text;
+        
+        const step = CONVERSATION_FLOW[currentStep];
+        if (step.next) {
+            currentStep = step.next;
+            processStep();
+        }
+        
+        messageTextarea.value = '';
+        messageTextarea.disabled = true;
     }
 
-    // ===== Event listeners =====
-    // Start button: either show reg form or direct start
-    startChatButton.addEventListener('click', () => {
-        if (PRECHAT_ENABLED) { showRegistrationForm(); }
-        else { startChatWithoutRegistration(); }
-    });
+    // Start conversation
+    function startChat() {
+        if (!conversationId) conversationId = createSessionId();
+        currentStep = 'initial';
+        conversationData = {};
+        processStep();
+    }
 
-    // Registration form (only meaningful if pre-chat enabled)
-    registrationForm.addEventListener('submit', handleRegistration);
-
+    // Event listeners
     sendButton.addEventListener('click', () => {
-        const messageText = messageTextarea.value.trim();
-        if (messageText && !isWaitingForResponse) {
-            submitMessage(messageText);
-            messageTextarea.value = '';
-            messageTextarea.style.height = 'auto';
+        const text = messageTextarea.value.trim();
+        if (text && !messageTextarea.disabled) {
+            handleTextInput(text);
         }
     });
 
-    messageTextarea.addEventListener('input', autoResizeTextarea);
     messageTextarea.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            const messageText = messageTextarea.value.trim();
-            if (messageText && !isWaitingForResponse) {
-                submitMessage(messageText);
-                messageTextarea.value = '';
-                messageTextarea.style.height = 'auto';
+            const text = messageTextarea.value.trim();
+            if (text && !messageTextarea.disabled) {
+                handleTextInput(text);
             }
         }
     });
 
-    // First open → show chat + auto greeting (if prechat disabled)
     let firstOpen = true;
     launchButton.addEventListener('click', () => {
         chatWindow.classList.toggle('visible');
-        if (chatWindow.classList.contains('visible')) {
-            if (!PRECHAT_ENABLED && firstOpen) {
-                startChatWithoutRegistration();
-                firstOpen = false;
-            }
+        if (chatWindow.classList.contains('visible') && firstOpen) {
+            startChat();
+            firstOpen = false;
         }
     });
 
-    // Close button
-    const closeButtons = chatWindow.querySelectorAll('.chat-close-btn');
-    closeButtons.forEach(btn => btn.addEventListener('click', () => chatWindow.classList.remove('visible')));
+    chatWindow.querySelector('.chat-close-btn').addEventListener('click', () => {
+        chatWindow.classList.remove('visible');
+    });
+
+    // Disable textarea initially
+    messageTextarea.disabled = true;
 })();
